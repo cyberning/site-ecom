@@ -15,8 +15,30 @@ const notoArabic = Noto_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "E-Commerce DZ — Cash on Delivery",
-  description: "Meilleurs produits au meilleur prix. Paiement à la livraison. 69 Wilayas.",
+  title: {
+    default: "e-com.dz — E-Commerce COD Algérie",
+    template: "%s | e-com.dz",
+  },
+  description:
+    "Boutique en ligne Algérie — Paiement à la livraison — 69 Wilayas — Livraison rapide",
+  keywords: [
+    "e-commerce",
+    "algerie",
+    "cod",
+    "paiement livraison",
+    "boutique en ligne",
+    "69 wilayas",
+  ],
+  authors: [{ name: "e-com.dz" }],
+  openGraph: {
+    type: "website",
+    locale: "fr_DZ",
+    siteName: "e-com.dz",
+    title: "e-com.dz — E-Commerce COD Algérie",
+    description: "Boutique en ligne Algérie — Paiement à la livraison — 69 Wilayas",
+  },
+  robots: { index: true, follow: true },
+  manifest: "/manifest.json",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
