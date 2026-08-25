@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { checkoutSchema } from "@/lib/validators";
 import { generateTrackingId } from "@/lib/utils";
 import crypto from "crypto";
@@ -8,6 +10,61 @@ function hashPhone(phone: string): string {
   return crypto.createHash("sha256").update(phone.replace(/\s/g, "")).digest("hex");
 }
 
+// GET /api/orders — Liste paginée des commandes (admin/agent)
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    if (session.user.role !== "ADMIN" && session.user.role !== "CALL_AGENT") {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+
+    const where: Prisma.OrderWhereInput = {};
+    if (status && status !== "ALL") {
+      where.status = status as Prisma.EnumOrderStatusFilter["equals"];
+    }
+    if (search) {
+      where.OR = [
+        { trackingId: { contains: search, mode: "insensitive" } },
+        { customerName: { contains: search, mode: "insensitive" } },
+        { customerPhone: { contains: search } },
+      ];
+    }
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: {
+          items: { include: { variant: { include: { product: true } } } },
+          statusHistory: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      orders,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    console.error("Erreur GET orders:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
+
+// POST /api/orders — Création de commande (storefront, publique)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

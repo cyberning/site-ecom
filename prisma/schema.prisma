@@ -18,10 +18,12 @@ enum UserRole {
 
 enum OrderStatus {
   PENDING
+  NEEDS_CONFIRMATION
   CONFIRMED
   SHIPPED
   DELIVERED
   CANCELLED
+  RETURNED
 }
 
 enum OrderFallback {
