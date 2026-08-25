@@ -1,0 +1,77 @@
+{
+  "common": {
+    "home": "Home",
+    "products": "Products",
+    "cart": "Cart",
+    "checkout": "Checkout",
+    "currency": "DA",
+    "currencySymbol": "د.ج",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "noResults": "No results",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close"
+  },
+  "homepage": {
+    "heroTitle": "Best products at the best prices",
+    "heroSubtitle": "Cash on Delivery — Delivery across 69 Wilayas",
+    "viewProducts": "View Products",
+    "featuredProducts": "Featured Products",
+    "newArrivals": "New Arrivals"
+  },
+  "product": {
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "selectVariant": "Select a variant",
+    "reviews": "Customer Reviews",
+    "benefits": "Benefits",
+    "features": "Features",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "description": "Description"
+  },
+  "checkout": {
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "phonePlaceholder": "0XXXXXXXXX",
+    "wilaya": "Wilaya",
+    "commune": "Commune",
+    "address": "Full Address",
+    "deliveryMode": "Delivery Mode",
+    "homeDelivery": "Home Delivery",
+    "stopDesk": "Stop Desk",
+    "orderSummary": "Order Summary",
+    "subtotal": "Subtotal",
+    "deliveryFee": "Delivery Fee",
+    "total": "Total",
+    "placeOrder": "Place Order",
+    "phoneValidation": "Number must start with 05, 06, or 07 and contain 10 digits"
+  },
+  "thankYou": {
+    "title": "Thank you for your order!",
+    "trackingId": "Your tracking number",
+    "message": "Your order has been placed. An agent will contact you to confirm.",
+    "reassurance": "Cash on Delivery — Inspect before paying"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "orders": "Orders",
+    "delivery": "Delivery",
+    "pixels": "Pixels",
+    "settings": "Settings",
+    "users": "Users",
+    "analytics": "Analytics",
+    "welcome": "Welcome",
+    "logout": "Logout"
+  }
+}

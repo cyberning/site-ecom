@@ -1,0 +1,77 @@
+{
+  "common": {
+    "home": "الرئيسية",
+    "products": "المنتجات",
+    "cart": "السلة",
+    "checkout": "الطلب",
+    "currency": "د.ج",
+    "currencySymbol": "د.ج",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجاح",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "search": "بحث",
+    "noResults": "لا توجد نتائج",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "close": "إغلاق"
+  },
+  "homepage": {
+    "heroTitle": "أفضل المنتجات بأفضل الأسعار",
+    "heroSubtitle": "الدفع عند الاستلام — التوصيل إلى الولايات الـ 69",
+    "viewProducts": "عرض المنتجات",
+    "featuredProducts": "منتجات مميزة",
+    "newArrivals": "وصل حديثاً"
+  },
+  "product": {
+    "addToCart": "أضف إلى السلة",
+    "buyNow": "اشترِ الآن",
+    "selectVariant": "اختر النموذج",
+    "reviews": "آراء العملاء",
+    "benefits": "المزايا",
+    "features": "المواصفات",
+    "inStock": "متوفر",
+    "outOfStock": "غير متوفر",
+    "description": "الوصف"
+  },
+  "checkout": {
+    "fullName": "الاسم الكامل",
+    "phone": "رقم الهاتف",
+    "phonePlaceholder": "0XXXXXXXXX",
+    "wilaya": "الولاية",
+    "commune": "البلدية",
+    "address": "العنوان الكامل",
+    "deliveryMode": "طريقة التوصيل",
+    "homeDelivery": "التوصيل إلى المنزل",
+    "stopDesk": "التوقف المكتبي",
+    "orderSummary": "ملخص الطلب",
+    "subtotal": "المجموع الفرعي",
+    "deliveryFee": "رسوم التوصيل",
+    "total": "المجموع",
+    "placeOrder": "تأكيد الطلب",
+    "phoneValidation": "يجب أن يبدأ الرقم بـ 05 أو 06 أو 07 ويحتوي على 10 أرقام"
+  },
+  "thankYou": {
+    "title": "شكراً لطلبك!",
+    "trackingId": "رقم التتبع الخاص بك",
+    "message": "تم تسجيل طلبك. سيتواصل معك أحد الوكلاء لتأكيد الطلب.",
+    "reassurance": "الدفع عند الاستلام — فحص قبل الدفع"
+  },
+  "admin": {
+    "dashboard": "لوحة التحكم",
+    "products": "المنتجات",
+    "orders": "الطلبات",
+    "delivery": "التوصيل",
+    "pixels": "البكسلات",
+    "settings": "الإعدادات",
+    "users": "المستخدمون",
+    "analytics": "التحليلات",
+    "welcome": "مرحباً",
+    "logout": "تسجيل الخروج"
+  }
+}

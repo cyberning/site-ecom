@@ -1,0 +1,77 @@
+{
+  "common": {
+    "home": "Accueil",
+    "products": "Produits",
+    "cart": "Panier",
+    "checkout": "Commander",
+    "currency": "DA",
+    "currencySymbol": "د.ج",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "save": "Sauvegarder",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "noResults": "Aucun résultat",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "close": "Fermer"
+  },
+  "homepage": {
+    "heroTitle": "Les meilleurs produits au meilleur prix",
+    "heroSubtitle": "Cash on Delivery — Livraison dans les 69 Wilayas",
+    "viewProducts": "Voir les produits",
+    "featuredProducts": "Produits en vedette",
+    "newArrivals": "Nouveautés"
+  },
+  "product": {
+    "addToCart": "Ajouter au panier",
+    "buyNow": "Acheter maintenant",
+    "selectVariant": "Sélectionner une variante",
+    "reviews": "Avis clients",
+    "benefits": "Avantages",
+    "features": "Caractéristiques",
+    "inStock": "Disponible",
+    "outOfStock": "Rupture de stock",
+    "description": "Description"
+  },
+  "checkout": {
+    "fullName": "Nom complet",
+    "phone": "Numéro de téléphone",
+    "phonePlaceholder": "0XXXXXXXXX",
+    "wilaya": "Wilaya",
+    "commune": "Commune",
+    "address": "Adresse complète",
+    "deliveryMode": "Mode de livraison",
+    "homeDelivery": "Livraison à domicile",
+    "stopDesk": "Stop Desk",
+    "orderSummary": "Résumé de la commande",
+    "subtotal": "Sous-total",
+    "deliveryFee": "Frais de livraison",
+    "total": "Total",
+    "placeOrder": "Confirmer la commande",
+    "phoneValidation": "Le numéro doit commencer par 05, 06 ou 07 et contenir 10 chiffres"
+  },
+  "thankYou": {
+    "title": "Merci pour votre commande !",
+    "trackingId": "Votre numéro de suivi",
+    "message": "Votre commande a été enregistrée. Un agent va vous contacter pour confirmer.",
+    "reassurance": "Paiement Cash on Delivery — Inspection avant paiement"
+  },
+  "admin": {
+    "dashboard": "Tableau de bord",
+    "products": "Produits",
+    "orders": "Commandes",
+    "delivery": "Livraison",
+    "pixels": "Pixels",
+    "settings": "Paramètres",
+    "users": "Utilisateurs",
+    "analytics": "Analytique",
+    "welcome": "Bienvenue",
+    "logout": "Déconnexion"
+  }
+}
