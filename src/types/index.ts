@@ -7,9 +7,7 @@ declare module "next-auth" {
       role: "ADMIN" | "CALL_AGENT";
     } & DefaultSession["user"];
   }
-}
 
-declare module "next-auth/jwt" {
   interface JWT {
     role: "ADMIN" | "CALL_AGENT";
     userId: string;
