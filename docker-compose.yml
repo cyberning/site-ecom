@@ -1,0 +1,67 @@
+services:
+  app:
+    build: .
+    container_name: ecom-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://ecom_user:ecom_secure_password@postgres:5432/ecom_db
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-super-secret-key-change-in-production}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://yourdomain.dz}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ecom-dz.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - META_CAPI_ACCESS_TOKEN=${META_CAPI_ACCESS_TOKEN:-}
+      - TIKTOK_ACCESS_TOKEN=${TIKTOK_ACCESS_TOKEN:-}
+      - GOOGLE_ADS_ACCESS_TOKEN=${GOOGLE_ADS_ACCESS_TOKEN:-}
+      - ECOTRACK_API_KEY=${ECOTRACK_API_KEY:-}
+    volumes:
+      - uploads_data:/app/public/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ecom-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecom-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ecom_user
+      POSTGRES_PASSWORD: ecom_secure_password
+      POSTGRES_DB: ecom_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecom_user -d ecom_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecom-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: ecom-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - uploads_data:/var/www/uploads:ro
+    depends_on:
+      - app
+    networks:
+      - ecom-network
+
+volumes:
+  postgres_data:
+  uploads_data:
+
+networks:
+  ecom-network:
+    driver: bridge
