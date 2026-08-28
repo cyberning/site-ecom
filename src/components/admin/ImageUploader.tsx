@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 
@@ -26,6 +26,7 @@ export default function ImageUploader({
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = useCallback(
     async (files: FileList | null) => {
@@ -132,18 +133,22 @@ export default function ImageUploader({
               JPG, PNG, WebP, GIF — max 5 MB — max {maxImages} images
             </p>
             <input
+              ref={fileInputRef}
               type="file"
               multiple
               accept="image/jpeg,image/png,image/webp,image/gif"
               onChange={(e) => handleUpload(e.target.files)}
               className="hidden"
-              id="file-upload"
             />
-            <label htmlFor="file-upload" className="mt-3 cursor-pointer">
-              <Button type="button" variant="secondary" size="sm">
-                Sélectionner des fichiers
-              </Button>
-            </label>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-3"
+            >
+              Sélectionner des fichiers
+            </Button>
           </>
         )}
       </div>
