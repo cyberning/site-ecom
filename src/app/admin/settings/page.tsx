@@ -6,6 +6,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Spinner from "@/components/ui/Spinner";
 import Card from "@/components/ui/Card";
+import Alert from "@/components/ui/Alert";
 
 interface Setting {
   id: string;
@@ -307,17 +308,7 @@ export default function AdminSettings() {
       </div>
 
       {/* Feedback */}
-      {feedback && (
-        <div
-          className={`rounded-[var(--radius-sm)] border px-4 py-3 text-sm ${
-            feedback.type === "success"
-              ? "border-green-200 bg-green-50 text-green-700"
-              : "border-red-200 bg-red-50 text-red-700"
-          }`}
-        >
-          {feedback.message}
-        </div>
-      )}
+      {feedback && <Alert type={feedback.type} message={feedback.message} />}
 
       {/* Settings grouped by category */}
       {sortedCategories.map((cat) => (

@@ -50,9 +50,6 @@ export default function ProductForm({ productId }: ProductFormProps) {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
 
-  // Track which variants existed before editing (for delete detection)
-  const [originalVariantIds, setOriginalVariantIds] = useState<Set<string>>(new Set());
-
   // Load product if editing
   useEffect(() => {
     if (!productId) return;
@@ -105,7 +102,6 @@ export default function ProductForm({ productId }: ProductFormProps) {
           sortOrder: v.sortOrder as number,
         }));
         setVariants(loadedVariants);
-        setOriginalVariantIds(new Set(loadedVariants.map((v) => v.id).filter(Boolean) as string[]));
       })
       .catch(() => setError("Erreur lors du chargement du produit"))
       .finally(() => setLoading(false));
@@ -200,42 +196,26 @@ export default function ProductForm({ productId }: ProductFormProps) {
       const savedProduct = await res.json();
       const savedProductId = savedProduct.id;
 
-      // Determine which variants were removed (existed before but not in current list)
-      const currentVariantIds = new Set(variants.filter((v) => v.id).map((v) => v.id) as string[]);
-      const removedVariantIds = [...originalVariantIds].filter((id) => !currentVariantIds.has(id));
+      // Sauvegarder les variantes en un seul appel : le diff
+      // (suppression / mise à jour / création) est géré côté serveur.
+      const variantsRes = await fetch(`/api/products/${savedProductId}/variants`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variants: variants.map((variant, i) => ({
+            ...(variant.id ? { id: variant.id } : {}),
+            name: variant.name,
+            sku: variant.sku || undefined,
+            price: variant.price,
+            isActive: variant.isActive,
+            sortOrder: i,
+          })),
+        }),
+      });
 
-      // Delete removed variants
-      for (const variantId of removedVariantIds) {
-        await fetch(`/api/variants/${variantId}`, { method: "DELETE" });
-      }
-
-      // Save variants (update existing, create new)
-      for (let i = 0; i < variants.length; i++) {
-        const variant = variants[i];
-        const variantData = {
-          productId: savedProductId,
-          name: variant.name,
-          sku: variant.sku || undefined,
-          price: variant.price,
-          isActive: variant.isActive,
-          sortOrder: i,
-        };
-
-        if (variant.id) {
-          // Update existing variant
-          await fetch(`/api/variants/${variant.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(variantData),
-          });
-        } else {
-          // Create new variant
-          await fetch("/api/variants", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(variantData),
-          });
-        }
+      if (!variantsRes.ok) {
+        const err = await variantsRes.json();
+        throw new Error(err.error || "Erreur lors de la sauvegarde des variantes");
       }
 
       // Save images (replace all for this product)

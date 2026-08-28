@@ -2,14 +2,7 @@
 
 import { useTheme } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
-
-const themes = [
-  { name: "NEUMORPHISM", label: "Neumorphism", color: "#4F46E5", bg: "#E0E5EC" },
-  { name: "LUXURY", label: "Luxury", color: "#D4AF37", bg: "#0B090A" },
-  { name: "VIBRANT", label: "Vibrant", color: "#CCFF00", bg: "#0F0F12" },
-  { name: "ORGANIC", label: "Organic", color: "#6B8E23", bg: "#F7F5F0" },
-  { name: "TECH", label: "Tech", color: "#00E5FF", bg: "#0A0E17" },
-] as const;
+import { THEMES } from "@/lib/themes";
 
 export default function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
@@ -18,12 +11,10 @@ export default function ThemeSwitcher() {
     <div className="space-y-4">
       <h3 className="text-sm font-medium text-[var(--text-secondary)]">Thème actif</h3>
       <div className="grid grid-cols-5 gap-3">
-        {themes.map((t) => (
+        {THEMES.map((t) => (
           <button
             key={t.name}
-            onClick={() =>
-              setTheme(t.name as "NEUMORPHISM" | "LUXURY" | "VIBRANT" | "ORGANIC" | "TECH")
-            }
+            onClick={() => setTheme(t.name)}
             className={cn(
               "group relative flex flex-col items-center gap-2 rounded-[var(--radius-md)] border-2 p-3 transition-[var(--transition)]",
               theme === t.name

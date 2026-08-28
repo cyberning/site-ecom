@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ORDER_STATUSES } from "@/lib/orderStatus";
 
 // Phone validation for Algeria: starts with 05, 06, or 07, 10 digits
 export const phoneSchema = z
@@ -8,6 +9,15 @@ export const phoneSchema = z
 export const loginSchema = z.object({
   email: z.string().email("Email invalide"),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+});
+
+export const changeEmailSchema = z.object({
+  email: z.string().email("Email invalide"),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(6, "Le mot de passe actuel doit contenir au moins 6 caractères"),
+  newPassword: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
 });
 
 export const productSchema = z.object({
@@ -47,7 +57,7 @@ export const checkoutSchema = z.object({
 });
 
 export const orderStatusSchema = z.object({
-  status: z.enum(["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"]),
+  status: z.enum(ORDER_STATUSES),
   note: z.string().optional(),
 });
 

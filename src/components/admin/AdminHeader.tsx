@@ -7,20 +7,11 @@ import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Menu, LogOut, Palette } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { THEMES } from "@/lib/themes";
 
 interface AdminHeaderProps {
   onToggleSidebar: () => void;
 }
-
-type ThemeName = "NEUMORPHISM" | "LUXURY" | "VIBRANT" | "ORGANIC" | "TECH";
-
-const themeDots: { name: ThemeName; color: string; label: string }[] = [
-  { name: "NEUMORPHISM", color: "#4F46E5", label: "Neumorphism" },
-  { name: "LUXURY", color: "#D4AF37", label: "Luxury" },
-  { name: "VIBRANT", color: "#CCFF00", label: "Vibrant" },
-  { name: "ORGANIC", color: "#6B8E23", label: "Organic" },
-  { name: "TECH", color: "#00E5FF", label: "Tech" },
-];
 
 export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
   const { session } = useSession();
@@ -30,16 +21,23 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
   const [themeOpen, setThemeOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click or Escape
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setThemeOpen(false);
       }
     }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setThemeOpen(false);
+    }
     if (themeOpen) {
       document.addEventListener("mousedown", handleClick);
-      return () => document.removeEventListener("mousedown", handleClick);
+      document.addEventListener("keydown", handleKey);
+      return () => {
+        document.removeEventListener("mousedown", handleClick);
+        document.removeEventListener("keydown", handleKey);
+      };
     }
   }, [themeOpen]);
 
@@ -90,7 +88,7 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
               aria-label="Sélection de thème"
             >
               <p className="mb-1.5 px-2 text-xs font-medium text-[var(--text-muted)]">Thème</p>
-              {themeDots.map((t) => (
+              {THEMES.map((t) => (
                 <button
                   key={t.name}
                   onClick={() => {
@@ -125,7 +123,7 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
 
         {/* User info */}
         <div className="hidden items-center gap-2 sm:flex">
-          <span className="text-sm text-[var(--text-secondary)]">
+          <span className="max-w-[180px] truncate text-sm text-[var(--text-secondary)]">
             {session?.user?.name || session?.user?.email}
           </span>
           <span className="rounded-[var(--radius-full)] bg-[var(--accent-light)] px-2 py-0.5 text-xs font-medium text-[var(--accent)]">

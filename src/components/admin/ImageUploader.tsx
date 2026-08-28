@@ -161,7 +161,12 @@ export default function ImageUploader({
               }`}
             >
               <div className="aspect-square bg-[var(--bg-secondary)]">
-                <img src={img.url} alt={img.alt} className="h-full w-full object-cover" />
+                <img
+                  src={img.url}
+                  alt={img.alt}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
               </div>
 
               {/* Overlay actions */}
@@ -170,7 +175,8 @@ export default function ImageUploader({
                   type="button"
                   onClick={() => setPrimary(index)}
                   title="Image principale"
-                  className={`rounded-full p-1 text-xs transition-[var(--transition)] ${
+                  aria-label={img.isPrimary ? "Image principale" : "Définir comme image principale"}
+                  className={`rounded-full p-1 text-xs transition-all duration-300 ${
                     img.isPrimary
                       ? "bg-[var(--accent)] text-white"
                       : "bg-white/80 text-black hover:bg-[var(--accent)] hover:text-white"
@@ -182,6 +188,7 @@ export default function ImageUploader({
                   type="button"
                   onClick={() => removeImage(index)}
                   title="Supprimer"
+                  aria-label={`Supprimer l'image ${index + 1}`}
                   className="rounded-full bg-white/80 p-1 text-xs text-red-500 hover:bg-red-500 hover:text-white"
                 >
                   ✕
@@ -200,6 +207,7 @@ export default function ImageUploader({
                 value={img.alt}
                 onChange={(e) => updateAlt(index, e.target.value)}
                 placeholder="Texte alternatif"
+                aria-label={`Texte alternatif pour l'image ${index + 1}`}
                 className="w-full border-t border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
               />
             </div>

@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import Spinner from "@/components/ui/Spinner";
+import Alert from "@/components/ui/Alert";
+import Pagination from "@/components/ui/Pagination";
+import { formatPrice } from "@/lib/utils";
+import { formatDate } from "@/lib/format";
+import { STATUS_LABELS, STATUS_BADGE_VARIANT } from "@/lib/orderStatus";
 
 interface OrderItem {
   id: string;
@@ -28,53 +34,53 @@ interface Order {
   items: OrderItem[];
 }
 
-const STATUS_COLORS: Record<string, "default" | "success" | "warning" | "danger" | "info"> = {
-  PENDING: "warning",
-  NEEDS_CONFIRMATION: "info",
-  CONFIRMED: "info",
-  SHIPPED: "success",
-  DELIVERED: "success",
-  CANCELLED: "danger",
-  RETURNED: "danger",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "En attente",
-  NEEDS_CONFIRMATION: "À confirmer",
-  CONFIRMED: "Confirmée",
-  SHIPPED: "Expédiée",
-  DELIVERED: "Livrée",
-  CANCELLED: "Annulée",
-  RETURNED: "Retournée",
-};
-
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
+  const requestIdRef = useRef(0);
+
+  // Debounce de la recherche : le fetch ne se déclenche qu'après 300ms d'inactivité.
+  // On remet aussi la page à 1 dans le même tick pour éviter de requêter
+  // une page qui n'existe plus avec le nouveau terme (et le double fetch).
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const fetchOrders = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({ page: String(page), limit: "20" });
       if (statusFilter !== "ALL") params.set("status", statusFilter);
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
 
       const res = await fetch(`/api/orders?${params}`);
       if (!res.ok) throw new Error("Erreur lors du chargement");
 
       const data = await res.json();
+      // Ignorer les réponses obsolètes (une requête plus récente est en cours)
+      if (requestId !== requestIdRef.current) return;
       setOrders(data.orders || []);
       setPagination(data.pagination || { total: 0, pages: 1 });
     } catch {
+      if (requestId !== requestIdRef.current) return;
       setOrders([]);
+      setError("Erreur lors du chargement des commandes");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [page, statusFilter, search]);
+  }, [page, statusFilter, debouncedSearch]);
 
   useEffect(() => {
     fetchOrders();
@@ -83,19 +89,9 @@ export default function OrdersPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchOrders();
+    // Flush immédiat du debounce pour que la recherche soumise soit appliquée
+    setDebouncedSearch(search);
   };
-
-  const formatPrice = (p: number) => new Intl.NumberFormat("fr-DZ").format(p) + " DA";
-
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("fr-DZ", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
 
   return (
     <div className="space-y-6">
@@ -117,29 +113,34 @@ export default function OrdersPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher par tracking, nom, téléphone..."
+              aria-label="Rechercher une commande"
               className="flex-1"
             />
             <Button type="submit" size="sm">
               Rechercher
             </Button>
           </form>
-          <select
+          <Select
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)]"
-          >
-            <option value="ALL">Tous les statuts</option>
-            {Object.entries(STATUS_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
+            aria-label="Filtrer les commandes par statut"
+            className="w-full sm:w-56"
+            options={[
+              { value: "ALL", label: "Tous les statuts" },
+              ...Object.entries(STATUS_LABELS).map(([key, label]) => ({
+                value: key,
+                label,
+              })),
+            ]}
+          />
         </div>
       </Card>
+
+      {/* Erreur de chargement */}
+      {error && <Alert type="error" message={error} />}
 
       {/* Tableau des commandes */}
       <Card className="overflow-hidden">
@@ -152,7 +153,7 @@ export default function OrdersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+              <thead className="border-b border-[var(--border)]">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
                     Tracking
@@ -190,7 +191,7 @@ export default function OrdersPage() {
                       {formatPrice(Number(order.total))}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={STATUS_COLORS[order.status] || "default"}>
+                      <Badge variant={STATUS_BADGE_VARIANT[order.status] || "default"}>
                         {STATUS_LABELS[order.status] || order.status}
                       </Badge>
                     </td>
@@ -213,29 +214,7 @@ export default function OrdersPage() {
       </Card>
 
       {/* Pagination */}
-      {pagination.pages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            Précédent
-          </Button>
-          <span className="text-sm text-[var(--text-muted)]">
-            Page {page} / {pagination.pages}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
-            disabled={page === pagination.pages}
-          >
-            Suivant
-          </Button>
-        </div>
-      )}
+      <Pagination page={page} pages={pagination.pages} onPageChange={setPage} />
     </div>
   );
 }

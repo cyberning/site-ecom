@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BarChart3 } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Spinner from "@/components/ui/Spinner";
+import Alert from "@/components/ui/Alert";
+import ToggleSwitch from "@/components/ui/ToggleSwitch";
+import Modal from "@/components/ui/Modal";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -45,7 +49,11 @@ export default function AdminPixels() {
     accessToken: "",
   });
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
 
   const fetchPixels = async () => {
     try {
@@ -54,7 +62,7 @@ export default function AdminPixels() {
       setPixels(data.pixels || []);
       setProviders(data.availableProviders || []);
     } catch {
-      setMessage("❌ Erreur lors du chargement");
+      setMessage({ type: "error", message: "Erreur lors du chargement" });
     } finally {
       setLoading(false);
     }
@@ -69,7 +77,7 @@ export default function AdminPixels() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setMessage("");
+    setMessage(null);
 
     try {
       const res = await fetch("/api/admin/pixels", {
@@ -84,16 +92,16 @@ export default function AdminPixels() {
       });
 
       if (res.ok) {
-        setMessage("✅ Pixel ajouté avec succès");
+        setMessage({ type: "success", message: "Pixel ajouté avec succès" });
         setShowAdd(false);
         setForm({ provider: "META", pixelId: "", name: "", accessToken: "" });
         fetchPixels();
       } else {
         const data = await res.json();
-        setMessage(`❌ ${data.error}`);
+        setMessage({ type: "error", message: data.error });
       }
     } catch {
-      setMessage("❌ Erreur réseau");
+      setMessage({ type: "error", message: "Erreur réseau" });
     } finally {
       setSaving(false);
     }
@@ -102,28 +110,54 @@ export default function AdminPixels() {
   // ── Toggle actif / inactif ──────────────────────────────────────
 
   const toggleActive = async (pixel: Pixel) => {
-    await fetch("/api/admin/pixels", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: pixel.id, isActive: !pixel.isActive }),
-    });
-    fetchPixels();
+    try {
+      const res = await fetch("/api/admin/pixels", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: pixel.id, isActive: !pixel.isActive }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setMessage({
+          type: "error",
+          message: data.error || "Erreur lors de la mise à jour du pixel",
+        });
+        return;
+      }
+      fetchPixels();
+    } catch {
+      setMessage({ type: "error", message: "Erreur réseau lors de la mise à jour du pixel" });
+    }
   };
 
   // ── Suppression ─────────────────────────────────────────────────
 
-  const deletePixel = async (id: string) => {
-    if (!confirm("Supprimer ce pixel ?")) return;
-    await fetch(`/api/admin/pixels?id=${id}`, { method: "DELETE" });
-    fetchPixels();
+  const deletePixel = async () => {
+    if (!deleteId) return;
+    try {
+      const res = await fetch(`/api/admin/pixels?id=${deleteId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        setMessage({
+          type: "error",
+          message: data.error || "Erreur lors de la suppression du pixel",
+        });
+        return;
+      }
+      setDeleteId(null);
+      fetchPixels();
+    } catch {
+      setMessage({ type: "error", message: "Erreur réseau lors de la suppression du pixel" });
+    }
   };
 
   // ── Test (log serveur) ──────────────────────────────────────────
 
   const testFire = (pixel: Pixel) => {
-    setMessage(
-      `🧪 Test envoyé pour ${pixel.name} (${pixel.pixelId}) — vérifiez la console serveur`
-    );
+    setMessage({
+      type: "info",
+      message: `Test envoyé pour ${pixel.name} (${pixel.pixelId}) — vérifiez la console serveur`,
+    });
   };
 
   // ── Render ──────────────────────────────────────────────────────
@@ -145,20 +179,7 @@ export default function AdminPixels() {
 
       {/* Message flash */}
       {message && (
-        <div
-          className={`rounded-[var(--radius-sm)] p-3 text-sm ${
-            message.startsWith("✅")
-              ? "bg-green-500/10 text-green-600"
-              : message.startsWith("🧪")
-                ? "bg-blue-500/10 text-blue-600"
-                : "bg-red-500/10 text-red-500"
-          }`}
-        >
-          {message}
-          <button onClick={() => setMessage("")} className="ml-2 text-[var(--text-muted)]">
-            ✕
-          </button>
-        </div>
+        <Alert type={message.type} message={message.message} onDismiss={() => setMessage(null)} />
       )}
 
       {/* Formulaire d'ajout */}
@@ -177,7 +198,8 @@ export default function AdminPixels() {
                     key={p.code}
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, provider: p.code }))}
-                    className={`rounded-[var(--radius-sm)] border px-4 py-2 text-sm transition-[var(--transition)] ${
+                    aria-pressed={form.provider === p.code}
+                    className={`rounded-[var(--radius-sm)] border px-4 py-2 text-sm transition-all duration-300 ${
                       form.provider === p.code
                         ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--accent)]"
                         : "border-[var(--border)] hover:border-[var(--accent)]"
@@ -230,7 +252,10 @@ export default function AdminPixels() {
         </div>
       ) : pixels.length === 0 ? (
         <Card className="py-16 text-center text-[var(--text-muted)]">
-          <p className="mb-4 text-4xl">📊</p>
+          <BarChart3
+            className="mx-auto mb-4 h-12 w-12 text-[var(--text-muted)]"
+            aria-hidden="true"
+          />
           <p className="text-lg font-medium text-[var(--text-primary)]">Aucun pixel configuré</p>
           <p className="mt-2 text-sm">
             Ajoutez un pixel Meta, TikTok ou Google pour tracker vos conversions serveur-side.
@@ -242,19 +267,11 @@ export default function AdminPixels() {
             <Card key={pixel.id} className="p-5">
               <div className="mb-3 flex items-start justify-between">
                 <Badge variant={PROVIDER_BADGE[pixel.type] || "default"}>{pixel.type}</Badge>
-                <button
-                  onClick={() => toggleActive(pixel)}
-                  className={`inline-flex h-6 w-11 items-center rounded-full transition-[var(--transition)] ${
-                    pixel.isActive ? "bg-green-500" : "bg-[var(--text-muted)]"
-                  }`}
-                  title={pixel.isActive ? "Désactiver" : "Activer"}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-                      pixel.isActive ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </button>
+                <ToggleSwitch
+                  checked={pixel.isActive}
+                  onChange={() => toggleActive(pixel)}
+                  label={pixel.isActive ? "Désactiver" : "Activer"}
+                />
               </div>
 
               <p className="mb-1 text-sm font-medium text-[var(--text-primary)]">{pixel.name}</p>
@@ -267,7 +284,7 @@ export default function AdminPixels() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => deletePixel(pixel.id)}
+                  onClick={() => setDeleteId(pixel.id)}
                   className="text-red-500 hover:text-red-600"
                 >
                   Supprimer
@@ -277,6 +294,21 @@ export default function AdminPixels() {
           ))}
         </div>
       )}
+
+      {/* Modal de confirmation de suppression */}
+      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Supprimer le pixel">
+        <p className="mb-6 text-[var(--text-secondary)]">
+          Êtes-vous sûr de vouloir supprimer ce pixel ? Cette action est irréversible.
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setDeleteId(null)}>
+            Annuler
+          </Button>
+          <Button variant="danger" onClick={deletePixel}>
+            Supprimer
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

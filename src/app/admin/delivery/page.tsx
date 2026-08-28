@@ -6,6 +6,9 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Spinner from "@/components/ui/Spinner";
+import Alert from "@/components/ui/Alert";
+import ToggleSwitch from "@/components/ui/ToggleSwitch";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -35,7 +38,10 @@ export default function DeliveryMatrixPage() {
   const [bulkHomeFee, setBulkHomeFee] = useState("");
   const [bulkStopDeskFee, setBulkStopDeskFee] = useState("");
   const [bulkDays, setBulkDays] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{ type: "success" | "error"; message: string } | null>(
+    null
+  );
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   /* --- Chargement initial --- */
   useEffect(() => {
@@ -44,13 +50,17 @@ export default function DeliveryMatrixPage() {
 
   const fetchMatrix = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch("/api/delivery/matrix");
       if (res.ok) {
         setMatrix(await res.json());
+      } else {
+        setLoadError("Erreur lors du chargement de la matrice de livraison");
       }
     } catch (err) {
       console.error("Erreur chargement matrice:", err);
+      setLoadError("Erreur réseau lors du chargement de la matrice de livraison");
     } finally {
       setLoading(false);
     }
@@ -122,7 +132,7 @@ export default function DeliveryMatrixPage() {
   /* --- Sauvegarde --- */
   const handleSave = async () => {
     setSaving(true);
-    setMessage("");
+    setMessage(null);
     try {
       const updates = Object.entries(edited)
         .filter(([, data]) => data !== undefined)
@@ -143,17 +153,20 @@ export default function DeliveryMatrixPage() {
       const result = await res.json();
 
       if (res.ok) {
-        setMessage(`✅ ${result.updated} wilaya(s) mise(s) à jour`);
+        setMessage({ type: "success", message: `${result.updated} wilaya(s) mise(s) à jour` });
         setEdited({});
         setBulkHomeFee("");
         setBulkStopDeskFee("");
         setBulkDays("");
         await fetchMatrix();
       } else {
-        setMessage(`❌ ${result.error || "Erreur lors de la sauvegarde"}`);
+        setMessage({
+          type: "error",
+          message: result.error || "Erreur lors de la sauvegarde",
+        });
       }
     } catch {
-      setMessage("❌ Erreur réseau");
+      setMessage({ type: "error", message: "Erreur réseau" });
     } finally {
       setSaving(false);
     }
@@ -165,7 +178,7 @@ export default function DeliveryMatrixPage() {
     setBulkHomeFee("");
     setBulkStopDeskFee("");
     setBulkDays("");
-    setMessage("");
+    setMessage(null);
   };
 
   /* ================================================================ */
@@ -198,17 +211,10 @@ export default function DeliveryMatrixPage() {
       </div>
 
       {/* Message */}
-      {message && (
-        <div
-          className={`rounded-[var(--radius-sm)] p-3 text-sm ${
-            message.startsWith("✅")
-              ? "bg-green-500/10 text-green-600"
-              : "bg-red-500/10 text-red-500"
-          }`}
-        >
-          {message}
-        </div>
-      )}
+      {message && <Alert type={message.type} message={message.message} />}
+
+      {/* Erreur de chargement */}
+      {loadError && <Alert type="error" message={loadError} />}
 
       {/* Édition en masse — affichée uniquement quand il y a des modifications */}
       {editedCount > 0 && (
@@ -223,7 +229,8 @@ export default function DeliveryMatrixPage() {
                 value={bulkHomeFee}
                 onChange={(e) => setBulkHomeFee(e.target.value)}
                 placeholder="Ex: 600"
-                className="w-32"
+                aria-label="Frais domicile en masse (DA)"
+                className="w-full sm:w-32"
               />
             </div>
             <div>
@@ -235,7 +242,8 @@ export default function DeliveryMatrixPage() {
                 value={bulkStopDeskFee}
                 onChange={(e) => setBulkStopDeskFee(e.target.value)}
                 placeholder="Ex: 400"
-                className="w-32"
+                aria-label="Frais stop desk en masse (DA)"
+                className="w-full sm:w-32"
               />
             </div>
             <div>
@@ -247,7 +255,8 @@ export default function DeliveryMatrixPage() {
                 value={bulkDays}
                 onChange={(e) => setBulkDays(e.target.value)}
                 placeholder="Ex: 3"
-                className="w-24"
+                aria-label="Délai en masse (jours)"
+                className="w-full sm:w-24"
               />
             </div>
             <Button variant="secondary" size="sm" onClick={handleBulkApply}>
@@ -275,7 +284,7 @@ export default function DeliveryMatrixPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+              <thead className="border-b border-[var(--border)]">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">Code</th>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
@@ -301,9 +310,10 @@ export default function DeliveryMatrixPage() {
                   return (
                     <tr
                       key={row.wilayaCode}
-                      className={
-                        isEdited ? "bg-[var(--accent)]/[0.04]" : "hover:bg-[var(--bg-secondary)]/50"
-                      }
+                      className={cn(
+                        isEdited && "bg-[var(--accent)]/[0.04]",
+                        "transition-all duration-300 hover:bg-[var(--bg-secondary)]/50"
+                      )}
                     >
                       {/* Code */}
                       <td className="px-4 py-2 font-mono text-xs font-medium text-[var(--text-primary)]">
@@ -324,7 +334,8 @@ export default function DeliveryMatrixPage() {
                           onChange={(e) =>
                             updateField(row.wilayaCode, "homeFee", parseFloat(e.target.value) || 0)
                           }
-                          className="w-24 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-right text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
+                          aria-label={`Frais domicile pour ${row.wilaya.name}`}
+                          className="w-24 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-right text-sm text-[var(--text-primary)] transition-all duration-300 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
                         />
                       </td>
 
@@ -340,7 +351,8 @@ export default function DeliveryMatrixPage() {
                               parseFloat(e.target.value) || 0
                             )
                           }
-                          className="w-24 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-right text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
+                          aria-label={`Frais stop desk pour ${row.wilaya.name}`}
+                          className="w-24 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-right text-sm text-[var(--text-primary)] transition-all duration-300 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
                         />
                       </td>
 
@@ -356,30 +368,20 @@ export default function DeliveryMatrixPage() {
                               parseInt(e.target.value, 10) || 1
                             )
                           }
-                          className="w-16 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-center text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
+                          aria-label={`Délai de livraison pour ${row.wilaya.name}`}
+                          className="w-16 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-center text-sm text-[var(--text-primary)] transition-all duration-300 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
                         />
                       </td>
 
                       {/* Toggle actif */}
                       <td className="px-4 py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() =>
+                        <ToggleSwitch
+                          checked={getFieldValue(row, "isActive")}
+                          onChange={() =>
                             updateField(row.wilayaCode, "isActive", !getFieldValue(row, "isActive"))
                           }
-                          className={`inline-flex h-6 w-11 items-center rounded-full transition-[var(--transition)] ${
-                            getFieldValue(row, "isActive")
-                              ? "bg-[var(--accent)]"
-                              : "bg-[var(--text-muted)]"
-                          }`}
-                          aria-label={getFieldValue(row, "isActive") ? "Désactiver" : "Activer"}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-                              getFieldValue(row, "isActive") ? "translate-x-6" : "translate-x-1"
-                            }`}
-                          />
-                        </button>
+                          label={getFieldValue(row, "isActive") ? "Désactiver" : "Activer"}
+                        />
                       </td>
                     </tr>
                   );

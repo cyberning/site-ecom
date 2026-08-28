@@ -11,8 +11,12 @@ import {
   RotateCcw,
   Check,
   Eye,
+  ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { applyCustomizationsToDocument } from "@/lib/theme";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -63,41 +67,6 @@ const DEFAULTS: Record<string, string | number> = {
   custom_hero_image: "",
   custom_hero_title: "Les meilleurs produits au meilleur prix",
 };
-
-// ---------------------------------------------------------------------------
-// CSS variable mapping — setting key → CSS var / body style
-// ---------------------------------------------------------------------------
-
-const CSS_VAR_MAP: Record<string, string> = {
-  custom_accent_color: "--accent",
-  custom_bg_primary: "--bg-primary",
-  custom_bg_secondary: "--bg-secondary",
-  custom_bg_card: "--bg-card",
-  custom_text_primary: "--text-primary",
-  custom_text_secondary: "--text-secondary",
-  custom_border_color: "--border",
-  custom_border_radius_sm: "--radius-sm",
-  custom_border_radius_md: "--radius-md",
-  custom_border_radius_lg: "--radius-lg",
-  custom_border_radius_xl: "--radius-xl",
-  custom_spacing_unit: "--spacing-unit",
-};
-
-function applyToDocument(values: Record<string, string | number>) {
-  const root = document.documentElement;
-  for (const [key, cssVar] of Object.entries(CSS_VAR_MAP)) {
-    const v = values[key];
-    if (v !== undefined && v !== "") {
-      root.style.setProperty(cssVar, typeof v === "number" ? `${v}px` : String(v));
-    }
-  }
-  if (values.custom_font_primary) {
-    document.body.style.fontFamily = String(values.custom_font_primary);
-  }
-  if (values.custom_font_size_base !== undefined) {
-    document.body.style.fontSize = `${values.custom_font_size_base}px`;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Options
@@ -185,13 +154,15 @@ function ColorPicker({
             style={{ backgroundColor: value }}
           />
         </div>
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(settingKey, e.target.value)}
-          className="flex-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 font-mono text-sm text-[var(--text-primary)] uppercase transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-          aria-label={`Valeur hex pour ${label}`}
-        />
+        <div className="flex-1">
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(settingKey, e.target.value)}
+            className="font-mono uppercase"
+            aria-label={`Valeur hex pour ${label}`}
+          />
+        </div>
       </div>
     </div>
   );
@@ -275,6 +246,76 @@ function Skeleton() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Boutons d'action Réinitialiser / Sauvegarder (réutilisés en haut et en bas)
+function ActionButtons({
+  onReset,
+  onSave,
+  saving,
+}: {
+  onReset: () => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <>
+      <button
+        onClick={onReset}
+        className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-[var(--transition)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+        aria-label="Réinitialiser les paramètres"
+      >
+        <RotateCcw className="h-4 w-4" />
+        Réinitialiser
+      </button>
+      <button
+        onClick={onSave}
+        disabled={saving}
+        className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-[var(--transition)] hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="Sauvegarder les paramètres"
+      >
+        {saving ? (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+        ) : (
+          <Save className="h-4 w-4" />
+        )}
+        {saving ? "Sauvegarde..." : "Sauvegarder"}
+      </button>
+    </>
+  );
+}
+
+// Aperçu de la bannière hero avec fallback en cas d'erreur d'image
+function HeroPreview({ url, onRemove }: { url: string; onRemove: () => void }) {
+  const [error, setError] = useState(false);
+
+  return (
+    <div className="relative overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border)]">
+      {error ? (
+        <div className="flex h-48 w-full flex-col items-center justify-center gap-2 bg-[var(--bg-secondary)] text-[var(--text-muted)]">
+          <ImageIcon className="h-8 w-8" aria-hidden="true" />
+          <span className="text-sm">Image indisponible</span>
+        </div>
+      ) : (
+        <img
+          key={url}
+          src={url}
+          alt="Aperçu de la bannière"
+          className="h-48 w-full object-cover"
+          loading="lazy"
+          onError={() => setError(true)}
+        />
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute top-2 right-2 rounded-full bg-black/60 p-1.5 text-white transition-[var(--transition)] hover:bg-red-500"
+        aria-label="Supprimer l'image"
+      >
+        ✕
+      </button>
     </div>
   );
 }
@@ -414,7 +455,7 @@ export default function AdminCustomizePage() {
         }
       }
       setValues(merged);
-      applyToDocument(merged);
+      applyCustomizationsToDocument(merged);
     } catch {
       setFeedback({
         type: "error",
@@ -433,7 +474,7 @@ export default function AdminCustomizePage() {
   const handleChange = useCallback((key: string, val: string | number) => {
     setValues((prev) => {
       const next = { ...prev, [key]: val };
-      applyToDocument(next);
+      applyCustomizationsToDocument(next);
       return next;
     });
     setFeedback(null);
@@ -483,7 +524,7 @@ export default function AdminCustomizePage() {
   // Reset to defaults
   const handleReset = useCallback(() => {
     setValues({ ...DEFAULTS });
-    applyToDocument(DEFAULTS);
+    applyCustomizationsToDocument(DEFAULTS);
     setFeedback(null);
   }, []);
 
@@ -545,27 +586,7 @@ export default function AdminCustomizePage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleReset}
-            className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-[var(--transition)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-            aria-label="Réinitialiser les paramètres"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Réinitialiser
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-[var(--transition)] hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Sauvegarder les paramètres"
-          >
-            {saving ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {saving ? "Sauvegarde..." : "Sauvegarder"}
-          </button>
+          <ActionButtons onReset={handleReset} onSave={handleSave} saving={saving} />
         </div>
       </div>
 
@@ -591,36 +612,20 @@ export default function AdminCustomizePage() {
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
         <SectionHeader icon={Palette} title="Identité de la marque" />
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1">
-            <label
-              htmlFor="store-name"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Nom du magasin
-            </label>
-            <input
-              type="text"
-              id="store-name"
-              value={String(values.custom_store_name)}
-              onChange={(e) => handleChange("custom_store_name", e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-            />
-          </div>
-          <div className="space-y-1">
-            <label
-              htmlFor="store-tagline"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Slogan
-            </label>
-            <input
-              type="text"
-              id="store-tagline"
-              value={String(values.custom_store_tagline)}
-              onChange={(e) => handleChange("custom_store_tagline", e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-            />
-          </div>
+          <Input
+            id="store-name"
+            label="Nom du magasin"
+            type="text"
+            value={String(values.custom_store_name)}
+            onChange={(e) => handleChange("custom_store_name", e.target.value)}
+          />
+          <Input
+            id="store-tagline"
+            label="Slogan"
+            type="text"
+            value={String(values.custom_store_tagline)}
+            onChange={(e) => handleChange("custom_store_tagline", e.target.value)}
+          />
           <div className="space-y-1 sm:col-span-2">
             <label
               htmlFor="footer-text"
@@ -636,49 +641,27 @@ export default function AdminCustomizePage() {
               className="w-full resize-none rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
             />
           </div>
-          <div className="space-y-1">
-            <label
-              htmlFor="contact-email"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Email de contact
-            </label>
-            <input
-              type="email"
-              id="contact-email"
-              value={String(values.custom_contact_email)}
-              onChange={(e) => handleChange("custom_contact_email", e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-            />
-          </div>
-          <div className="space-y-1">
-            <label
-              htmlFor="contact-phone"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Téléphone
-            </label>
-            <input
-              type="tel"
-              id="contact-phone"
-              value={String(values.custom_contact_phone)}
-              onChange={(e) => handleChange("custom_contact_phone", e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-            />
-          </div>
-          <div className="space-y-1 sm:col-span-2">
-            <label
-              htmlFor="contact-address"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Adresse
-            </label>
-            <input
-              type="text"
+          <Input
+            id="contact-email"
+            label="Email de contact"
+            type="email"
+            value={String(values.custom_contact_email)}
+            onChange={(e) => handleChange("custom_contact_email", e.target.value)}
+          />
+          <Input
+            id="contact-phone"
+            label="Téléphone"
+            type="tel"
+            value={String(values.custom_contact_phone)}
+            onChange={(e) => handleChange("custom_contact_phone", e.target.value)}
+          />
+          <div className="sm:col-span-2">
+            <Input
               id="contact-address"
+              label="Adresse"
+              type="text"
               value={String(values.custom_contact_address)}
               onChange={(e) => handleChange("custom_contact_address", e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
             />
           </div>
         </div>
@@ -690,19 +673,13 @@ export default function AdminCustomizePage() {
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
         <SectionHeader icon={Palette} title="Bannière Hero" />
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1 sm:col-span-2">
-            <label
-              htmlFor="hero-title"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Titre de la bannière
-            </label>
-            <input
-              type="text"
+          <div className="sm:col-span-2">
+            <Input
               id="hero-title"
+              label="Titre de la bannière"
+              type="text"
               value={String(values.custom_hero_title)}
               onChange={(e) => handleChange("custom_hero_title", e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
               placeholder="Les meilleurs produits au meilleur prix"
             />
           </div>
@@ -734,7 +711,7 @@ export default function AdminCustomizePage() {
                 </div>
               ) : (
                 <>
-                  <span className="text-3xl text-[var(--text-muted)]">🖼️</span>
+                  <ImageIcon className="h-10 w-10 text-[var(--text-muted)]" aria-hidden="true" />
                   <p className="mt-2 text-sm text-[var(--text-secondary)]">
                     Glissez-déposez ou cliquez pour uploader une image
                   </p>
@@ -761,43 +738,23 @@ export default function AdminCustomizePage() {
             {heroUploadError && <p className="text-sm text-red-500">{heroUploadError}</p>}
 
             {/* Champ URL manuel (optionnel) */}
-            <div className="space-y-1">
-              <label
-                htmlFor="hero-image-url"
-                className="block text-xs font-medium text-[var(--text-muted)]"
-              >
-                Ou saisir une URL manuellement
-              </label>
-              <input
-                type="url"
+            <div>
+              <Input
                 id="hero-image-url"
+                label="Ou saisir une URL manuellement"
+                type="url"
                 value={String(values.custom_hero_image)}
                 onChange={(e) => handleChange("custom_hero_image", e.target.value)}
-                className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
                 placeholder="https://exemple.com/image.jpg"
               />
             </div>
 
             {/* Aperçu de l'image */}
             {values.custom_hero_image && (
-              <div className="relative overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border)]">
-                <img
-                  src={String(values.custom_hero_image)}
-                  alt="Aperçu de la bannière"
-                  className="h-48 w-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleChange("custom_hero_image", "")}
-                  className="absolute top-2 right-2 rounded-full bg-black/60 p-1.5 text-white transition-[var(--transition)] hover:bg-red-500"
-                  aria-label="Supprimer l'image"
-                >
-                  ✕
-                </button>
-              </div>
+              <HeroPreview
+                url={String(values.custom_hero_image)}
+                onRemove={() => handleChange("custom_hero_image", "")}
+              />
             )}
           </div>
         </div>
@@ -860,68 +817,42 @@ export default function AdminCustomizePage() {
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
         <SectionHeader icon={Type} title="Typographie" />
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1">
-            <label
-              htmlFor="font-primary"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Police principale
-            </label>
-            <select
-              id="font-primary"
-              value={fontDisplayName(String(values.custom_font_primary))}
-              onChange={(e) => {
-                const font = e.target.value;
-                const familyStr =
-                  font.includes(" ") && !font.includes(",")
-                    ? `${font}, sans-serif`
-                    : font.includes("Mono")
-                      ? `${font}, monospace`
-                      : font.includes("Playfair") || font.includes("Lora")
-                        ? `${font}, serif`
-                        : `${font}, sans-serif`;
-                handleChange("custom_font_primary", familyStr);
-              }}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-            >
-              {FONT_OPTIONS.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label
-              htmlFor="font-heading"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Police des titres
-            </label>
-            <select
-              id="font-heading"
-              value={fontDisplayName(String(values.custom_font_heading))}
-              onChange={(e) => {
-                const font = e.target.value;
-                const familyStr =
-                  font.includes(" ") && !font.includes(",")
-                    ? `${font}, sans-serif`
-                    : font.includes("Mono")
-                      ? `${font}, monospace`
-                      : font.includes("Playfair") || font.includes("Lora")
-                        ? `${font}, serif`
-                        : `${font}, sans-serif`;
-                handleChange("custom_font_heading", familyStr);
-              }}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-            >
-              {FONT_OPTIONS.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="font-primary"
+            label="Police principale"
+            value={fontDisplayName(String(values.custom_font_primary))}
+            onChange={(e) => {
+              const font = e.target.value;
+              const familyStr =
+                font.includes(" ") && !font.includes(",")
+                  ? `${font}, sans-serif`
+                  : font.includes("Mono")
+                    ? `${font}, monospace`
+                    : font.includes("Playfair") || font.includes("Lora")
+                      ? `${font}, serif`
+                      : `${font}, sans-serif`;
+              handleChange("custom_font_primary", familyStr);
+            }}
+            options={FONT_OPTIONS.map((f) => ({ value: f, label: f }))}
+          />
+          <Select
+            id="font-heading"
+            label="Police des titres"
+            value={fontDisplayName(String(values.custom_font_heading))}
+            onChange={(e) => {
+              const font = e.target.value;
+              const familyStr =
+                font.includes(" ") && !font.includes(",")
+                  ? `${font}, sans-serif`
+                  : font.includes("Mono")
+                    ? `${font}, monospace`
+                    : font.includes("Playfair") || font.includes("Lora")
+                      ? `${font}, serif`
+                      : `${font}, sans-serif`;
+              handleChange("custom_font_heading", familyStr);
+            }}
+            options={FONT_OPTIONS.map((f) => ({ value: f, label: f }))}
+          />
           <RangeSlider
             label="Taille de base"
             settingKey="custom_font_size_base"
@@ -1058,26 +989,13 @@ export default function AdminCustomizePage() {
             unit="px"
             onChange={handleChange}
           />
-          <div className="space-y-1">
-            <label
-              htmlFor="btn-font-weight"
-              className="block text-sm font-medium text-[var(--text-primary)]"
-            >
-              Épaisseur de police
-            </label>
-            <select
-              id="btn-font-weight"
-              value={String(values.custom_btn_font_weight)}
-              onChange={(e) => handleChange("custom_btn_font_weight", e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-            >
-              {FONT_WEIGHT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="btn-font-weight"
+            label="Épaisseur de police"
+            value={String(values.custom_btn_font_weight)}
+            onChange={(e) => handleChange("custom_btn_font_weight", e.target.value)}
+            options={FONT_WEIGHT_OPTIONS}
+          />
         </div>
       </div>
 
@@ -1217,25 +1135,7 @@ export default function AdminCustomizePage() {
 
       {/* ---- Bottom actions (mobile-friendly sticky) ---- */}
       <div className="sticky bottom-0 -mx-2 flex items-center justify-end gap-3 border-t border-[var(--border)] bg-[var(--bg-primary)] pt-4 pb-2 sm:static sm:border-t-0 sm:bg-transparent sm:pt-0 sm:pb-0">
-        <button
-          onClick={handleReset}
-          className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-[var(--transition)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Réinitialiser
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-[var(--transition)] hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {saving ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          {saving ? "Sauvegarde..." : "Sauvegarder"}
-        </button>
+        <ActionButtons onReset={handleReset} onSave={handleSave} saving={saving} />
       </div>
     </div>
   );

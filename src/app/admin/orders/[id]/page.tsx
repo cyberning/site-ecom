@@ -6,6 +6,11 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
+import Alert from "@/components/ui/Alert";
+import Modal from "@/components/ui/Modal";
+import { formatPrice } from "@/lib/utils";
+import { formatDate } from "@/lib/format";
+import { STATUS_OPTIONS, STATUS_BADGE_VARIANT } from "@/lib/orderStatus";
 
 interface OrderDetail {
   id: string;
@@ -40,27 +45,6 @@ interface OrderDetail {
   }[];
 }
 
-const STATUS_OPTIONS = [
-  { value: "PENDING", label: "En attente" },
-  { value: "NEEDS_CONFIRMATION", label: "À confirmer" },
-  { value: "CONFIRMED", label: "Confirmée" },
-  { value: "SHIPPED", label: "Expédiée" },
-  { value: "DELIVERED", label: "Livrée" },
-  { value: "CANCELLED", label: "Annulée" },
-  { value: "RETURNED", label: "Retournée" },
-];
-
-const STATUS_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "danger" | "info"> =
-  {
-    PENDING: "warning",
-    NEEDS_CONFIRMATION: "info",
-    CONFIRMED: "info",
-    SHIPPED: "success",
-    DELIVERED: "success",
-    CANCELLED: "danger",
-    RETURNED: "danger",
-  };
-
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -69,6 +53,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [updating, setUpdating] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
@@ -128,17 +113,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const formatPrice = (p: number) => new Intl.NumberFormat("fr-DZ").format(p) + " DA";
-
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("fr-DZ", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -178,11 +152,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </Badge>
       </div>
 
-      {error && (
-        <div className="rounded-[var(--radius-sm)] border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <Alert type="error" message={error} />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Infos client */}
@@ -193,7 +163,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               <span className="text-[var(--text-muted)]">Nom :</span> {order.customerName}
             </p>
             <p>
-              <span className="text-[var(--text-muted)]">Tél :</span> {order.customerPhone}
+              <span className="text-[var(--text-muted)]">Tél :</span>{" "}
+              <a
+                href={`tel:${order.customerPhone.replace(/\s/g, "")}`}
+                className="text-[var(--accent)] transition-all duration-300 hover:underline"
+              >
+                {order.customerPhone}
+              </a>
             </p>
             <p>
               <span className="text-[var(--text-muted)]">Wilaya :</span> {order.wilayaCode}
@@ -222,6 +198,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Note (optionnel)..."
+              aria-label="Note associée au changement de statut"
               className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
               rows={3}
             />
@@ -231,7 +208,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   key={opt.value}
                   variant={opt.value === "CANCELLED" ? "danger" : "secondary"}
                   size="sm"
-                  onClick={() => updateStatus(opt.value)}
+                  onClick={() => {
+                    if (opt.value === "CANCELLED") {
+                      setConfirmCancel(true);
+                    } else {
+                      updateStatus(opt.value);
+                    }
+                  }}
                   disabled={updating}
                 >
                   {opt.label}
@@ -246,11 +229,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Résumé</h3>
           <div className="space-y-2 text-sm">
             {order.items.map((item) => (
-              <div key={item.id} className="flex justify-between">
-                <span className="text-[var(--text-secondary)]">
-                  {item.variant.product.name} ({item.variant.name}) × {item.quantity}
-                </span>
-                <span className="text-[var(--text-primary)]">
+              <div key={item.id} className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  {item.variant.product.images[0] && (
+                    <img
+                      src={item.variant.product.images[0].url}
+                      alt=""
+                      className="h-10 w-10 flex-shrink-0 rounded-[var(--radius-sm)] border border-[var(--border)] object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                  <span className="truncate text-[var(--text-secondary)]">
+                    {item.variant.product.name} ({item.variant.name}) × {item.quantity}
+                  </span>
+                </div>
+                <span className="flex-shrink-0 text-[var(--text-primary)]">
                   {formatPrice(Number(item.totalPrice))}
                 </span>
               </div>
@@ -305,6 +298,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </Card>
       )}
+
+      {/* Confirmation d'annulation (action destructive) */}
+      <Modal
+        isOpen={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        title="Annuler la commande"
+      >
+        <p className="mb-6 text-[var(--text-secondary)]">
+          Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setConfirmCancel(false)}>
+            Retour
+          </Button>
+          <Button
+            variant="danger"
+            disabled={updating}
+            onClick={() => {
+              setConfirmCancel(false);
+              updateStatus("CANCELLED");
+            }}
+          >
+            {updating ? "Annulation..." : "Confirmer l'annulation"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

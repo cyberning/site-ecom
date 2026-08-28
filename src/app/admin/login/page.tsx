@@ -3,14 +3,29 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { loginSchema } from "@/lib/validators";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/admin";
+
+  // Anti open-redirect : n'accepter que des chemins internes du dashboard admin.
+  // Bloque les URLs absolues (https://…), protocole-relative (//evil.com) et
+  // les schémas type javascript: — ainsi que le bypass par backslash (/\evil.com).
+  const rawCallback = searchParams.get("callbackUrl") || "/admin";
+  const callbackUrl =
+    rawCallback.startsWith("/admin") &&
+    !rawCallback.startsWith("//") &&
+    !rawCallback.includes(":") &&
+    !rawCallback.includes("\\")
+      ? rawCallback
+      : "/admin";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -51,54 +66,53 @@ function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-[var(--radius-sm)] bg-red-500/10 p-3 text-sm text-red-500">
+        <div
+          id="login-error"
+          role="alert"
+          className="rounded-[var(--radius-sm)] bg-red-500/10 p-3 text-sm text-red-500"
+        >
           {error}
         </div>
       )}
 
-      <div>
-        <label
-          htmlFor="email"
-          className="mb-1 block text-sm font-medium text-[var(--text-primary)]"
-        >
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-          placeholder="admin@ecom-dz.com"
-        />
-      </div>
+      <Input
+        id="email"
+        name="email"
+        type="email"
+        label="Email"
+        required
+        autoComplete="email"
+        autoFocus
+        placeholder="admin@ecom-dz.com"
+        aria-describedby={error ? "login-error" : undefined}
+      />
 
       <div>
-        <label
-          htmlFor="password"
-          className="mb-1 block text-sm font-medium text-[var(--text-primary)]"
-        >
-          Mot de passe
-        </label>
-        <input
+        <Input
           id="password"
           name="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
+          label="Mot de passe"
           required
           autoComplete="current-password"
-          className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
           placeholder="••••••"
+          aria-describedby={error ? "login-error" : undefined}
         />
+        <button
+          type="button"
+          onClick={() => setShowPassword((v) => !v)}
+          className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)] transition-all duration-300 hover:text-[var(--accent)]"
+          aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+          aria-pressed={showPassword}
+        >
+          {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          {showPassword ? "Masquer" : "Afficher"}
+        </button>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 py-3 font-medium text-white transition-[var(--transition)] hover:bg-[var(--accent-hover)] disabled:opacity-50"
-      >
+      <Button type="submit" disabled={loading} className="w-full" size="lg">
         {loading ? "Connexion..." : "Se connecter"}
-      </button>
+      </Button>
     </form>
   );
 }

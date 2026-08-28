@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -11,6 +12,7 @@ import {
   Target,
   Settings,
   Paintbrush,
+  User,
   ExternalLink,
   X,
 } from "lucide-react";
@@ -33,10 +35,22 @@ const navigation: {
   { name: "Pixels", href: "/admin/pixels", icon: Target },
   { name: "Paramètres", href: "/admin/settings", icon: Settings },
   { name: "Personnaliser", href: "/admin/customize", icon: Paintbrush },
+  { name: "Mon compte", href: "/admin/account", icon: User },
 ];
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+
+  // Fermer la sidebar mobile avec la touche Échap
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    if (isOpen) {
+      document.addEventListener("keydown", handleKey);
+      return () => document.removeEventListener("keydown", handleKey);
+    }
+  }, [isOpen, onClose]);
 
   return (
     <>
