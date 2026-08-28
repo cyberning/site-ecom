@@ -140,7 +140,7 @@ export default function ImageUploader({
               id="file-upload"
             />
             <label htmlFor="file-upload" className="mt-3 cursor-pointer">
-              <Button variant="secondary" size="sm">
+              <Button type="button" variant="secondary" size="sm">
                 Sélectionner des fichiers
               </Button>
             </label>
