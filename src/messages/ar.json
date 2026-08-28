@@ -19,14 +19,34 @@
     "confirm": "تأكيد",
     "back": "رجوع",
     "next": "التالي",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "footerDesc": "وجهتك للحصول على أفضل المنتجات. الدفع عند الاستلام.",
+    "informations": "معلومات",
+    "cashOnDelivery": "💵 الدفع عند الاستلام",
+    "inspection": "🔍 فحص قبل الدفع",
+    "delivery69": "🚚 التوصيل إلى الولايات الـ 69",
+    "customerService": "📞 خدمة العملاء متاحة",
+    "contact": "التواصل",
+    "allRightsReserved": "جميع الحقوق محفوظة."
   },
   "homepage": {
     "heroTitle": "أفضل المنتجات بأفضل الأسعار",
     "heroSubtitle": "الدفع عند الاستلام — التوصيل إلى الولايات الـ 69",
     "viewProducts": "عرض المنتجات",
     "featuredProducts": "منتجات مميزة",
-    "newArrivals": "وصل حديثاً"
+    "newArrivals": "وصل حديثاً",
+    "heroBenefit1": "💵 الدفع عند الاستلام",
+    "heroBenefit2": "🔍 فحص قبل الدفع",
+    "heroBenefit3": "🚚 الولايات الـ 69",
+    "trustCashOnDelivery": "الدفع عند الاستلام",
+    "trustCashOnDeliveryDesc": "ادفع عند الاستلام",
+    "trustInspection": "فحص",
+    "trustInspectionDesc": "تحقق قبل الدفع",
+    "trustDelivery": "الولايات الـ 69",
+    "trustDeliveryDesc": "توصيل في جميع أنحاء الجزائر",
+    "trustWarranty": "ضمان",
+    "trustWarrantyDesc": "راضٍ أو مسترد",
+    "noProducts": "لا توجد منتجات متاحة حالياً"
   },
   "product": {
     "addToCart": "أضف إلى السلة",
@@ -37,7 +57,9 @@
     "features": "المواصفات",
     "inStock": "متوفر",
     "outOfStock": "غير متوفر",
-    "description": "الوصف"
+    "description": "الوصف",
+    "paymentInfo": "💵 الدفع عند الاستلام",
+    "deliveryInfo": "🚚 التوصيل 69 ولاية"
   },
   "checkout": {
     "fullName": "الاسم الكامل",

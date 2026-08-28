@@ -12,7 +12,7 @@ export const loginSchema = z.object({
 
 export const productSchema = z.object({
   name: z.string().min(1, "Le nom est obligatoire"),
-  slug: z.string().min(1, "Le slug est obligatoire"),
+  slug: z.string().min(1, "Le slug est obligatoire").optional(),
   description: z.string().optional(),
   shortDesc: z.string().max(160).optional(),
   basePrice: z.number().positive("Le prix doit être positif"),
@@ -26,6 +26,7 @@ export const productSchema = z.object({
 });
 
 export const variantSchema = z.object({
+  productId: z.string().min(1, "Le produit est obligatoire"),
   name: z.string().min(1, "Le nom est obligatoire"),
   sku: z.string().optional(),
   price: z.number().positive("Le prix doit être positif"),

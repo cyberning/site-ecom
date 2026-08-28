@@ -19,14 +19,34 @@
     "confirm": "Confirm",
     "back": "Back",
     "next": "Next",
-    "close": "Close"
+    "close": "Close",
+    "footerDesc": "Your destination for the best products. Cash on Delivery.",
+    "informations": "Information",
+    "cashOnDelivery": "💵 Cash on Delivery",
+    "inspection": "🔍 Inspect before paying",
+    "delivery69": "🚚 Delivery across 69 Wilayas",
+    "customerService": "📞 Customer service available",
+    "contact": "Contact",
+    "allRightsReserved": "All rights reserved."
   },
   "homepage": {
     "heroTitle": "Best products at the best prices",
     "heroSubtitle": "Cash on Delivery — Delivery across 69 Wilayas",
     "viewProducts": "View Products",
     "featuredProducts": "Featured Products",
-    "newArrivals": "New Arrivals"
+    "newArrivals": "New Arrivals",
+    "heroBenefit1": "💵 Cash on Delivery",
+    "heroBenefit2": "🔍 Inspect before paying",
+    "heroBenefit3": "🚚 69 Wilayas",
+    "trustCashOnDelivery": "Cash on Delivery",
+    "trustCashOnDeliveryDesc": "Pay on delivery",
+    "trustInspection": "Inspection",
+    "trustInspectionDesc": "Check before paying",
+    "trustDelivery": "69 Wilayas",
+    "trustDeliveryDesc": "Delivery across Algeria",
+    "trustWarranty": "Warranty",
+    "trustWarrantyDesc": "Satisfaction guaranteed",
+    "noProducts": "No products available yet"
   },
   "product": {
     "addToCart": "Add to Cart",
@@ -37,7 +57,9 @@
     "features": "Features",
     "inStock": "In Stock",
     "outOfStock": "Out of Stock",
-    "description": "Description"
+    "description": "Description",
+    "paymentInfo": "💵 Cash on Delivery",
+    "deliveryInfo": "🚚 Delivery 69 Wilayas"
   },
   "checkout": {
     "fullName": "Full Name",

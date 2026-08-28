@@ -19,14 +19,34 @@
     "confirm": "Confirmer",
     "back": "Retour",
     "next": "Suivant",
-    "close": "Fermer"
+    "close": "Fermer",
+    "footerDesc": "Votre destination pour les meilleurs produits. Paiement à la livraison.",
+    "informations": "Informations",
+    "cashOnDelivery": "💵 Paiement à la livraison",
+    "inspection": "🔍 Inspection avant paiement",
+    "delivery69": "🚚 Livraison dans les 69 Wilayas",
+    "customerService": "📞 Service client disponible",
+    "contact": "Contact",
+    "allRightsReserved": "Tous droits réservés."
   },
   "homepage": {
     "heroTitle": "Les meilleurs produits au meilleur prix",
     "heroSubtitle": "Cash on Delivery — Livraison dans les 69 Wilayas",
     "viewProducts": "Voir les produits",
     "featuredProducts": "Produits en vedette",
-    "newArrivals": "Nouveautés"
+    "newArrivals": "Nouveautés",
+    "heroBenefit1": "💵 Paiement à la livraison",
+    "heroBenefit2": "🔍 Inspection avant paiement",
+    "heroBenefit3": "🚚 69 Wilayas",
+    "trustCashOnDelivery": "Cash on Delivery",
+    "trustCashOnDeliveryDesc": "Payez à la réception",
+    "trustInspection": "Inspection",
+    "trustInspectionDesc": "Vérifiez avant de payer",
+    "trustDelivery": "69 Wilayas",
+    "trustDeliveryDesc": "Livraison partout en Algérie",
+    "trustWarranty": "Garantie",
+    "trustWarrantyDesc": "Satisfait ou remboursé",
+    "noProducts": "Aucun produit disponible pour le moment"
   },
   "product": {
     "addToCart": "Ajouter au panier",
@@ -37,7 +57,9 @@
     "features": "Caractéristiques",
     "inStock": "Disponible",
     "outOfStock": "Rupture de stock",
-    "description": "Description"
+    "description": "Description",
+    "paymentInfo": "💵 Paiement à la livraison",
+    "deliveryInfo": "🚚 Livraison 69 Wilayas"
   },
   "checkout": {
     "fullName": "Nom complet",

@@ -5,6 +5,7 @@ import CheckoutForm from "@/components/storefront/CheckoutForm";
 import Badge from "@/components/ui/Badge";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -27,6 +28,8 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
+  const tCommon = await getTranslations("common");
+  const tProduct = await getTranslations("product");
 
   const product = await prisma.product.findUnique({
     where: { slug },
@@ -51,7 +54,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       {/* Fil d'Ariane */}
       <nav className="mb-6 text-sm text-[var(--text-muted)]" aria-label="Fil d'Ariane">
         <Link href="/" className="hover:text-[var(--accent)]">
-          Accueil
+          {tCommon("home")}
         </Link>
         <span className="mx-2">/</span>
         {product.category && (
@@ -107,7 +110,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
             {avgRating > 0 && (
               <div className="mt-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
                 <span>{"⭐".repeat(Math.round(avgRating))}</span>
-                <span>({product.reviews.length} avis)</span>
+                <span>
+                  ({product.reviews.length} {tProduct("reviews")})
+                </span>
               </div>
             )}
           </div>
@@ -126,8 +131,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
           )}
 
           <div className="flex items-center gap-4 text-sm text-[var(--text-muted)]">
-            <span className="flex items-center gap-1">💵 Paiement à la livraison</span>
-            <span className="flex items-center gap-1">🚚 Livraison 69 Wilayas</span>
+            <span className="flex items-center gap-1">{tProduct("paymentInfo")}</span>
+            <span className="flex items-center gap-1">{tProduct("deliveryInfo")}</span>
           </div>
 
           {/* Formulaire de commande */}
@@ -149,7 +154,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       {product.reviews.length > 0 && (
         <section className="mt-16">
           <h2 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">
-            Avis clients ({product.reviews.length})
+            {tProduct("reviews")} ({product.reviews.length})
           </h2>
           <div className="space-y-4">
             {product.reviews.map((review) => (

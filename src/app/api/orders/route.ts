@@ -133,6 +133,31 @@ export async function POST(request: NextRequest) {
       include: { items: true },
     });
 
+    // --- Tracking pixels server-side (fire-and-forget) ---
+    // On importe dynamiquement pour éviter les circular imports
+    // et on catch pour ne jamais bloquer la réponse au client.
+    import("@/lib/pixels")
+      .then(({ fireAllActivePixels }) =>
+        fireAllActivePixels({
+          eventName: "Purchase",
+          eventId: order.trackingId,
+          timestamp: Math.floor(Date.now() / 1000),
+          userData: {
+            externalId: order.id,
+            email: undefined,
+            phone: data.customerPhone,
+            ip,
+            userAgent,
+          },
+          customData: {
+            value: Number(order.total),
+            currency: "DZD",
+            contentType: "product",
+          },
+        })
+      )
+      .catch((err) => console.error("Pixel firing error:", err));
+
     return NextResponse.json(
       {
         trackingId: order.trackingId,

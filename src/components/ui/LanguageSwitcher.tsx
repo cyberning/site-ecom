@@ -1,14 +1,36 @@
 "use client";
 
-import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
-import { locales, localeNames, localeFlags, type Locale } from "@/i18n/config";
+import { locales, defaultLocale, localeNames, localeFlags, type Locale } from "@/i18n/config";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Helper: read NEXT_LOCALE cookie from the browser.
+ * Falls back to defaultLocale ("fr") if no valid cookie is found.
+ */
+function getLocaleFromCookie(): Locale {
+  try {
+    const match = document.cookie.split(";").find((c) => c.trim().startsWith("NEXT_LOCALE="));
+    if (match) {
+      const value = match.split("=")[1]?.trim();
+      if (value && locales.includes(value as Locale)) {
+        return value as Locale;
+      }
+    }
+  } catch {
+    // cookie access failed
+  }
+  return defaultLocale;
+}
+
 export default function LanguageSwitcher() {
-  const locale = useLocale();
   const router = useRouter();
+  const [locale, setLocale] = useState<Locale>(defaultLocale);
+
+  useEffect(() => {
+    setLocale(getLocaleFromCookie());
+  }, []);
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
