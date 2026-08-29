@@ -2,19 +2,22 @@
 
 import { useTheme } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
-import { THEMES } from "@/lib/themes";
+import { THEMES, type ThemeType } from "@/lib/themes";
 
-export default function ThemeSwitcher() {
+export default function ThemeSwitcher({ onSelect }: { onSelect?: (theme: ThemeType) => void }) {
   const { theme, setTheme } = useTheme();
 
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-medium text-[var(--text-secondary)]">Thème actif</h3>
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {THEMES.map((t) => (
           <button
             key={t.name}
-            onClick={() => setTheme(t.name)}
+            onClick={() => {
+              setTheme(t.name);
+              onSelect?.(t.name);
+            }}
             className={cn(
               "group relative flex flex-col items-center gap-2 rounded-[var(--radius-md)] border-2 p-3 transition-[var(--transition)]",
               theme === t.name

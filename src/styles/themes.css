@@ -24,6 +24,16 @@
   --shadow-neumorphic-inset:
     inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
   --font-primary: "Inter", sans-serif;
+  --font-heading: "Inter", sans-serif;
+  --btn-radius: var(--radius-sm);
+  --btn-padding-x: 16px;
+  --btn-padding-y: 8px;
+  --btn-font-weight: 500;
+  --card-shadow: var(--shadow-neumorphic);
+  --card-border: none;
+  --card-radius: var(--radius-lg);
+  --card-padding: 24px;
+  --spacing-unit: 4px;
   --transition: all 0.3s ease;
 }
 
@@ -51,6 +61,16 @@
   --radius-full: 0px;
   --shadow-neumorphic: 0 0 20px rgba(212, 175, 55, 0.08);
   --font-primary: "Playfair Display", serif;
+  --font-heading: "Playfair Display", serif;
+  --btn-radius: 0;
+  --btn-padding-x: 20px;
+  --btn-padding-y: 10px;
+  --btn-font-weight: 500;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --card-border: 2px solid #333030;
+  --card-radius: var(--radius-md);
+  --card-padding: 28px;
+  --spacing-unit: 4px;
   --transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -78,6 +98,16 @@
   --radius-full: 4px;
   --shadow-neumorphic: 0 0 30px rgba(204, 255, 0, 0.08);
   --font-primary: "Space Grotesk", sans-serif;
+  --font-heading: "Space Grotesk", sans-serif;
+  --btn-radius: 0;
+  --btn-padding-x: 20px;
+  --btn-padding-y: 10px;
+  --btn-font-weight: 700;
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  --card-border: 1px solid #2e2e36;
+  --card-radius: var(--radius-md);
+  --card-padding: 20px;
+  --spacing-unit: 4px;
   --transition: all 0.2s ease;
 }
 
@@ -105,6 +135,16 @@
   --radius-full: 9999px;
   --shadow-neumorphic: 4px 4px 10px var(--shadow-dark), -4px -4px 10px var(--shadow-light);
   --font-primary: "Lora", serif;
+  --font-heading: "Lora", serif;
+  --btn-radius: 9999px;
+  --btn-padding-x: 24px;
+  --btn-padding-y: 12px;
+  --btn-font-weight: 500;
+  --card-shadow: var(--shadow-neumorphic);
+  --card-border: none;
+  --card-radius: var(--radius-lg);
+  --card-padding: 28px;
+  --spacing-unit: 6px;
   --transition: all 0.3s ease;
 }
 
@@ -132,5 +172,15 @@
   --radius-full: 9999px;
   --shadow-neumorphic: 0 0 25px rgba(0, 229, 255, 0.06);
   --font-primary: "JetBrains Mono", monospace;
+  --font-heading: "JetBrains Mono", monospace;
+  --btn-radius: var(--radius-sm);
+  --btn-padding-x: 18px;
+  --btn-padding-y: 9px;
+  --btn-font-weight: 500;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --card-border: 1px solid #1e293b;
+  --card-radius: var(--radius-md);
+  --card-padding: 20px;
+  --spacing-unit: 4px;
   --transition: all 0.25s ease;
 }

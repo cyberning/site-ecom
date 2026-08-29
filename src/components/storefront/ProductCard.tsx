@@ -23,7 +23,10 @@ export default function ProductCard({
 
   return (
     <Link href={`/product/${slug}`} className="group block">
-      <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-neumorphic)] transition-[var(--transition)] hover:shadow-lg">
+      <div
+        className="overflow-hidden rounded-[var(--card-radius)] bg-[var(--bg-card)] transition-[var(--transition)] hover:shadow-lg"
+        style={{ border: "var(--card-border)", boxShadow: "var(--card-shadow)" }}
+      >
         {/* Image */}
         <div className="relative aspect-square bg-[var(--bg-secondary)]">
           {imageUrl ? (
@@ -46,7 +49,7 @@ export default function ProductCard({
         </div>
 
         {/* Info */}
-        <div className="p-4">
+        <div className="p-[var(--card-padding)]">
           {categoryName && (
             <Badge variant="default" className="mb-2">
               {categoryName}

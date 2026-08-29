@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { invalidateStoreSettingsCache } from "@/lib/getStoreSettings";
 
-// GET /api/settings — Return all settings (public)
+// GET /api/settings — Return all settings (admin only)
 export async function GET() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
+
   try {
     const settings = await prisma.setting.findMany({
       orderBy: { category: "asc" },
@@ -18,6 +25,11 @@ export async function GET() {
 
 // PUT /api/settings — Update multiple settings at once (admin only)
 export async function PUT(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { settings } = body as { settings?: { key: string; value: Prisma.InputJsonValue }[] };
@@ -46,6 +58,9 @@ export async function PUT(request: NextRequest) {
         })
       )
     );
+
+    // Invalider le cache pour que les changements soient immédiatement visibles côté storefront
+    invalidateStoreSettingsCache();
 
     return NextResponse.json(results);
   } catch (error) {

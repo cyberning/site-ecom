@@ -31,6 +31,15 @@ export function invalidateStoreSettingsCache(): void {
   cacheTime = 0;
 }
 
+function toSettingString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "object" && value !== null && "value" in value) {
+    return toSettingString((value as { value: unknown }).value);
+  }
+  return "";
+}
+
 export async function getStoreSettings(): Promise<StoreSettings> {
   const now = Date.now();
   if (cache && now - cacheTime < CACHE_TTL) {
@@ -44,7 +53,7 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 
     const map: Record<string, string> = {};
     for (const row of rows) {
-      map[row.key] = row.value;
+      map[row.key] = toSettingString(row.value);
     }
 
     const result: StoreSettings = {

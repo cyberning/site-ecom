@@ -3,6 +3,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { useEffect, useState } from "react";
 import { locales, defaultLocale, type Locale } from "@/i18n/config";
+import { IntlErrorCode } from "next-intl";
 
 /**
  * Helper: read NEXT_LOCALE cookie from the browser.
@@ -26,11 +27,22 @@ function getLocaleFromCookie(): Locale {
 /**
  * Client-side i18n provider.
  * Reads the locale from the NEXT_LOCALE cookie and loads messages dynamically.
- * Falls back to rendering children without translations while messages load.
+ *
+ * IMPORTANT: `NextIntlClientProvider` est rendu dès le premier rendu (avec des
+ * messages vides) afin que `useTranslations` appelé par les composants enfants
+ * (ex: AdminLayoutClient) ait TOUJOURS un provider disponible. Sans cela,
+ * `useTranslations` hors d'un `NextIntlClientProvider` lève une erreur pendant
+ * le SSR / le premier rendu client, tant que les messages ne sont pas chargés.
+ *
+ * Avec des messages vides, `t("clé")` retourne la clé brute via
+ * `getMessageFallback` — acceptable pour un état de chargement transitoire,
+ * remplacé dès que les messages arrivent. `onError` ignore les erreurs
+ * `MISSING_MESSAGE` (attendues pendant le chargement) tout en laissant passer
+ * les autres erreurs.
  */
 export default function IntlProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocale] = useState<Locale>(defaultLocale);
-  const [messages, setMessages] = useState<Record<string, unknown> | null>(null);
+  const [messages, setMessages] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
     const currentLocale = getLocaleFromCookie();
@@ -56,12 +68,19 @@ export default function IntlProvider({ children }: { children: React.ReactNode }
     return () => clearInterval(interval);
   }, [locale]);
 
-  if (!messages || Object.keys(messages).length === 0) {
-    return <>{children}</>;
-  }
-
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages}
+      getMessageFallback={({ key, namespace }) => (namespace ? `${namespace}.${key}` : key)}
+      onError={(error) => {
+        // Les messages manquants pendant le chargement (messages vides) sont
+        // attendus et non-bloquants : on les ignore pour ne pas polluer la
+        // console. Les autres erreurs (formatage, etc.) restent visibles.
+        if (error.code === IntlErrorCode.MISSING_MESSAGE) return;
+        console.error(error);
+      }}
+    >
       {children}
     </NextIntlClientProvider>
   );

@@ -16,6 +16,7 @@ Ce document explique comment installer, configurer et exécuter l'ensemble des t
 8. [Créer ses propres tests](#8-créer-ses-propres-tests)
 9. [Debugging des tests](#9-debugging-des-tests)
 10. [Sécurité et vulnérabilités npm](#10-sécurité-et-vulnérabilités-npm)
+11. [Tests manuels — Thèmes et personnalisation](#11-tests-manuels--thèmes-et-personnalisation)
 
 ---
 
@@ -476,6 +477,109 @@ npm audit fix --force
 | `uuid` (via node-cron) | 🟡 MODÉRÉ | Non utilisé directement | Upgrader node-cron ou retirer |
 
 > Ces vulnérabilités nécessitent des breaking changes majeures. Elles seront corrigées progressivement lors des prochaines montées de version du framework.
+
+---
+
+## 11. Tests manuels — Thèmes et personnalisation
+
+Cette section documente les tests manuels réalisés (via **agent-browser**, basé sur Playwright) sur les thèmes et la personnalisation de l'application, ainsi que les corrections apportées suite aux résultats.
+
+### 11.1 Scénarios couverts
+
+| Scénario | Description |
+|----------|-------------|
+| Application des 5 thèmes | Sélection de chacun des thèmes **NEUMORPHISM**, **LUXURY**, **VIBRANT**, **ORGANIC** et **TECH** depuis `/admin/settings` |
+| Persistance cookie | Le thème choisi est écrit dans le cookie `theme` (durée 1 an, `SameSite=Lax`) et survit au rechargement de la page |
+| Persistance DB | Le thème actif est sauvegardé dans la table `Setting` (clé `active_theme`) via `PUT /api/admin/settings` |
+| Personnalisation live | Modification des valeurs `custom_*` sur `/admin/customize` avec aperçu en direct (`applyCustomizationsToDocument`) |
+| Sauvegarde | Enregistrement des personnalisations via l'API (état capturé dans `customize-after-save.json`) |
+| Reset | Réinitialisation des personnalisations (état capturé dans `customize-restored.json`) |
+| Restauration | Vérification que les valeurs initiales sont bien restaurées après reset |
+
+### 11.2 Corrections apportées suite aux tests
+
+1. **`/admin/settings` — remplacement du combobox par `ThemeSwitcher`** : l'ancien combobox « Thème actif du storefront » a été remplacé par le composant `ThemeSwitcher` (`src/components/ui/ThemeSwitcher.tsx`) qui affiche **5 cartes** (une par thème). Un clic sur une carte déclenche immédiatement :
+   - la mise à jour de l'attribut `data-theme` sur `<html>` (changement visuel instantané),
+   - l'écriture du cookie `theme`,
+   - la sauvegarde en DB (`active_theme`) si l'utilisateur est connecté en admin.
+   
+   La clé `active_theme` est par ailleurs exclue de la sauvegarde globale de la page (`handleSave` la filtre) pour éviter tout conflit.
+
+2. **`/admin/settings` — catégorie « customize » masquée** : les clés `custom_*` (catégorie `customize`) sont désormais exclues de l'affichage de la page de paramètres. Elles sont gérées exclusivement par la page dédiée `/admin/customize`, ce qui évite des champs bruts redondants et un risque de double édition.
+
+3. **Invalidation du cache thème** : `revalidateTag("active-theme")` est appelé dans `PUT /api/admin/settings` à chaque sauvegarde de la clé `active_theme`. Le layout racine (`src/app/layout.tsx`) lit le thème via `unstable_cache` avec `tags: ["active-theme"]` (revalidate 60 s) ; l'invalidation garantit que le storefront reflète le nouveau thème **immédiatement**, sans attendre l'expiration du cache.
+
+### 11.3 Re-test après corrections
+
+Le re-test complet a validé **8/8 vérifications** :
+
+| # | Vérification | Résultat |
+|---|--------------|----------|
+| 1 | Le composant `ThemeSwitcher` (5 cartes) remplace l'ancien combobox sur `/admin/settings` | ✅ OK |
+| 2 | La catégorie « customize » (clés `custom_*`) n'apparaît plus dans `/admin/settings` | ✅ OK |
+| 3 | Un clic sur une carte applique le thème immédiatement (`data-theme` mis à jour) | ✅ OK |
+| 4 | Le storefront reflète le nouveau thème sans attendre le revalidate de 60 s | ✅ OK |
+| 5 | Le cookie `theme` est mis à jour | ✅ OK |
+| 6 | La DB (`active_theme`) est mise à jour | ✅ OK |
+| 7 | Le thème persiste après rechargement de la page | ✅ OK |
+| 8 | Retour au thème initial possible (restauration) | ✅ OK |
+
+### 11.4 Screenshots et données archivés
+
+Les artefacts des tests sont archivés dans `tests/screenshots/` :
+
+**Tests initiaux (thèmes + personnalisation)** — `tests/screenshots/` :
+
+| Fichier | Contenu |
+|---------|---------|
+| `00-admin-default.png` | `/admin/settings` avec le thème par défaut |
+| `01-admin-LUXURY.png` | Thème LUXURY appliqué sur `/admin/settings` |
+| `01-admin-NEUMORPHISM.png` | Thème NEUMORPHISM appliqué |
+| `01-admin-ORGANIC.png` | Thème ORGANIC appliqué |
+| `01-admin-TECH.png` | Thème TECH appliqué |
+| `01-admin-VIBRANT.png` | Thème VIBRANT appliqué |
+| `02-settings-ORGANIC.png` | Paramètres avec le thème ORGANIC |
+| `03-storefront-ORGANIC.png` | Storefront en thème ORGANIC |
+| `03-storefront-TECH.png` | Storefront en thème TECH |
+| `c-00-customize-loaded.png` | Page `/admin/customize` chargée |
+| `c-01-accent.png` | Modification de la couleur d'accent |
+| `c-02-live-preview.png` | Aperçu en direct des personnalisations |
+| `c-03-saved.png` | Personnalisations sauvegardées |
+| `c-04-reset.png` | Personnalisations après reset |
+
+**Re-test après corrections** — `tests/screenshots/` :
+
+| Fichier | Contenu |
+|---------|---------|
+| `01-settings-themeswitcher.png` | `ThemeSwitcher` (5 cartes) sur `/admin/settings` |
+| `02-settings-no-customize.png` | Catégorie « customize » masquée |
+| `03-settings-luxury.png` | Thème LUXURY appliqué immédiatement |
+| `04-storefront-luxury.png` | Storefront en thème LUXURY |
+| `05-restored.png` | Thème restauré |
+
+**Données de personnalisation** — `tests/screenshots/data/` :
+
+| Fichier | Contenu |
+|---------|---------|
+| `customize-initial.json` | Valeurs initiales des clés `custom_*` |
+| `customize-after-save.json` | Valeurs après sauvegarde (accent `#FF5733`, fond `#1A1A2E`, etc.) |
+| `customize-restored.json` | Valeurs après restauration (identiques à l'initial) |
+
+### 11.5 Piège connu — clics CDP vs handlers React
+
+Les clics envoyés via le protocole CDP d'**agent-browser** ne déclenchent pas toujours les handlers `onClick` de React (événements synthétiques). Pour interagir de façon fiable avec les composants React (cartes du `ThemeSwitcher`, boutons de sauvegarde, etc.), utiliser `eval` avec un clic en JS natif :
+
+```javascript
+// ❌ Peut ne pas déclencher le handler React
+// await page.click('[data-testid="theme-luxury"]');
+
+// ✅ Déclenche l'événement natif que React écoute
+await page.evaluate(() => {
+  document.querySelector('[data-testid="theme-luxury"]')?.click();
+});
+```
+
+> **Note** : préférer `element.click()` en JS natif via `eval` pour toute interaction avec des composants React lors des tests manuels automatisés.
 
 ---
 

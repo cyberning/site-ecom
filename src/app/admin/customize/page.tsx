@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Palette,
   Type,
@@ -12,9 +12,14 @@ import {
   Check,
   Eye,
   ImageIcon,
+  SwatchBook,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyCustomizationsToDocument } from "@/lib/theme";
+import { getThemeDefaults, BRAND_DEFAULTS } from "@/lib/themeDefaults";
+import { useTheme } from "@/providers/ThemeProvider";
+import { type ThemeType } from "@/lib/themes";
+import ThemeSwitcher from "@/components/ui/ThemeSwitcher";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 
@@ -29,44 +34,6 @@ interface SettingItem {
   category: string;
   description: string;
 }
-
-// ---------------------------------------------------------------------------
-// Default values (fallback if API doesn't return)
-// ---------------------------------------------------------------------------
-
-const DEFAULTS: Record<string, string | number> = {
-  custom_store_name: "Nom du magasin",
-  custom_store_tagline: "Slogan du magasin",
-  custom_footer_text: "Texte du pied de page",
-  custom_contact_email: "email@exemple.com",
-  custom_contact_phone: "+213 5XX XX XX XX",
-  custom_contact_address: "Alger, Algérie",
-  custom_accent_color: "#4F46E5",
-  custom_bg_primary: "#E0E5EC",
-  custom_bg_secondary: "#D1D9E6",
-  custom_bg_card: "#E0E5EC",
-  custom_text_primary: "#2D3748",
-  custom_text_secondary: "#4A5568",
-  custom_border_color: "#CBD5E0",
-  custom_font_primary: "Inter, sans-serif",
-  custom_font_heading: "Inter, sans-serif",
-  custom_font_size_base: 16,
-  custom_font_size_heading: 24,
-  custom_border_radius_sm: 8,
-  custom_border_radius_md: 12,
-  custom_border_radius_lg: 16,
-  custom_border_radius_xl: 24,
-  custom_spacing_unit: 4,
-  custom_btn_style: "rounded",
-  custom_btn_padding_x: 16,
-  custom_btn_padding_y: 8,
-  custom_btn_font_weight: "medium",
-  custom_card_style: "neumorphic",
-  custom_card_shadow: "medium",
-  custom_card_padding: 24,
-  custom_hero_image: "",
-  custom_hero_title: "Les meilleurs produits au meilleur prix",
-};
 
 // ---------------------------------------------------------------------------
 // Options
@@ -325,26 +292,28 @@ function HeroPreview({ url, onRemove }: { url: string; onRemove: () => void }) {
 // ---------------------------------------------------------------------------
 
 function LivePreviewCard({ values }: { values: Record<string, string | number> }) {
-  const accent = String(values.custom_accent_color || DEFAULTS.custom_accent_color);
-  const bgCard = String(values.custom_bg_card || DEFAULTS.custom_bg_card);
-  const textPrimary = String(values.custom_text_primary || DEFAULTS.custom_text_primary);
-  const textSecondary = String(values.custom_text_secondary || DEFAULTS.custom_text_secondary);
-  const border = String(values.custom_border_color || DEFAULTS.custom_border_color);
-  const radiusSm = Number(values.custom_border_radius_sm ?? DEFAULTS.custom_border_radius_sm);
-  const radiusMd = Number(values.custom_border_radius_md ?? DEFAULTS.custom_border_radius_md);
-  const radiusLg = Number(values.custom_border_radius_lg ?? DEFAULTS.custom_border_radius_lg);
-  const fontSizeBase = Number(values.custom_font_size_base ?? DEFAULTS.custom_font_size_base);
+  const { theme } = useTheme();
+  const fallback = getThemeDefaults(theme);
+  const accent = String(values.custom_accent_color || fallback.custom_accent_color);
+  const bgCard = String(values.custom_bg_card || fallback.custom_bg_card);
+  const textPrimary = String(values.custom_text_primary || fallback.custom_text_primary);
+  const textSecondary = String(values.custom_text_secondary || fallback.custom_text_secondary);
+  const border = String(values.custom_border_color || fallback.custom_border_color);
+  const radiusSm = Number(values.custom_border_radius_sm ?? fallback.custom_border_radius_sm);
+  const radiusMd = Number(values.custom_border_radius_md ?? fallback.custom_border_radius_md);
+  const radiusLg = Number(values.custom_border_radius_lg ?? fallback.custom_border_radius_lg);
+  const fontSizeBase = Number(values.custom_font_size_base ?? fallback.custom_font_size_base);
   const fontSizeHeading = Number(
-    values.custom_font_size_heading ?? DEFAULTS.custom_font_size_heading
+    values.custom_font_size_heading ?? fallback.custom_font_size_heading
   );
-  const btnPadX = Number(values.custom_btn_padding_x ?? DEFAULTS.custom_btn_padding_x);
-  const btnPadY = Number(values.custom_btn_padding_y ?? DEFAULTS.custom_btn_padding_y);
-  const btnFontWeight = String(values.custom_btn_font_weight || DEFAULTS.custom_btn_font_weight);
-  const btnStyle = String(values.custom_btn_style || DEFAULTS.custom_btn_style);
-  const cardPadding = Number(values.custom_card_padding ?? DEFAULTS.custom_card_padding);
-  const cardStyle = String(values.custom_card_style || DEFAULTS.custom_card_style);
-  const cardShadow = String(values.custom_card_shadow || DEFAULTS.custom_card_shadow);
-  const spacing = Number(values.custom_spacing_unit ?? DEFAULTS.custom_spacing_unit);
+  const btnPadX = Number(values.custom_btn_padding_x ?? fallback.custom_btn_padding_x);
+  const btnPadY = Number(values.custom_btn_padding_y ?? fallback.custom_btn_padding_y);
+  const btnFontWeight = String(values.custom_btn_font_weight || fallback.custom_btn_font_weight);
+  const btnStyle = String(values.custom_btn_style || fallback.custom_btn_style);
+  const cardPadding = Number(values.custom_card_padding ?? fallback.custom_card_padding);
+  const cardStyle = String(values.custom_card_style || fallback.custom_card_style);
+  const cardShadow = String(values.custom_card_shadow || fallback.custom_card_shadow);
+  const spacing = Number(values.custom_spacing_unit ?? fallback.custom_spacing_unit);
 
   // Card outer styles
   const cardShadowCSS =
@@ -386,10 +355,10 @@ function LivePreviewCard({ values }: { values: Record<string, string | number> }
           style={{
             color: textPrimary,
             fontSize: `${fontSizeHeading}px`,
-            fontFamily: String(values.custom_font_primary || DEFAULTS.custom_font_primary),
+            fontFamily: String(values.custom_font_primary || fallback.custom_font_primary),
           }}
         >
-          {values.custom_store_name || DEFAULTS.custom_store_name}
+          {values.custom_store_name || fallback.custom_store_name}
         </h3>
         <p
           className="mb-4"
@@ -398,7 +367,7 @@ function LivePreviewCard({ values }: { values: Record<string, string | number> }
             fontSize: `${Math.max(12, fontSizeBase - 2)}px`,
           }}
         >
-          {values.custom_store_tagline || String(DEFAULTS.custom_store_tagline)}. Ceci est un aperçu
+          {values.custom_store_tagline || String(fallback.custom_store_tagline)}. Ceci est un aperçu
           en direct de votre personnalisation. Les couleurs, polices et espacements sont mis à jour
           en temps réel.
         </p>
@@ -427,7 +396,10 @@ function LivePreviewCard({ values }: { values: Record<string, string | number> }
 // ---------------------------------------------------------------------------
 
 export default function AdminCustomizePage() {
-  const [values, setValues] = useState<Record<string, string | number>>({ ...DEFAULTS });
+  const { theme } = useTheme();
+  const [values, setValues] = useState<Record<string, string | number>>(() => ({
+    ...getThemeDefaults(theme),
+  }));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
@@ -435,6 +407,14 @@ export default function AdminCustomizePage() {
   );
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroUploadError, setHeroUploadError] = useState("");
+
+  // Référence du thème courant : le chargement initial des valeurs DB ne doit
+  // PAS se relancer à chaque changement de thème (sinon il écraserait le
+  // pré-remplissage du formulaire par les défauts du thème sélectionné).
+  const themeRef = useRef(theme);
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   // Fetch settings on mount
   const fetchSettings = useCallback(async () => {
@@ -444,12 +424,15 @@ export default function AdminCustomizePage() {
       if (!res.ok) throw new Error("Erreur lors du chargement");
       const data: SettingItem[] = await res.json();
 
-      const merged: Record<string, string | number> = { ...DEFAULTS };
+      const defaults = getThemeDefaults(themeRef.current);
+      const merged: Record<string, string | number> = { ...defaults };
       for (const item of data) {
         // parse number types
         if (item.type === "number") {
-          merged[item.key] =
-            typeof item.value === "number" ? item.value : Number(item.value) || DEFAULTS[item.key];
+          // NB : ne pas utiliser `Number(item.value) || défaut` — le `||`
+          // casserait la valeur légitime 0 (ex. rayons LUXURY = 0).
+          const n = Number(item.value);
+          merged[item.key] = Number.isNaN(n) ? defaults[item.key] : n;
         } else {
           merged[item.key] = item.value;
         }
@@ -523,8 +506,23 @@ export default function AdminCustomizePage() {
 
   // Reset to defaults
   const handleReset = useCallback(() => {
-    setValues({ ...DEFAULTS });
-    applyCustomizationsToDocument(DEFAULTS);
+    const defaults = getThemeDefaults(theme);
+    setValues({ ...defaults });
+    applyCustomizationsToDocument(defaults);
+    setFeedback(null);
+  }, [theme]);
+
+  // Sélection d'un thème : pré-remplit le formulaire avec les défauts du thème
+  // (comportement "reset vers ce thème"). setTheme est déjà appelé par
+  // ThemeSwitcher (cookie + data-theme + sauvegarde active_theme en DB).
+  const handleThemeSelect = useCallback((t: ThemeType) => {
+    const defaults = getThemeDefaults(t);
+    // Ne pré-remplir que les clés de style, conserver les valeurs de marque courantes
+    const styleDefaults = Object.fromEntries(
+      Object.entries(defaults).filter(([key]) => !(key in BRAND_DEFAULTS))
+    );
+    setValues((prev) => ({ ...prev, ...styleDefaults }));
+    applyCustomizationsToDocument({ ...defaults }); // le document peut appliquer tout
     setFeedback(null);
   }, []);
 
@@ -605,6 +603,18 @@ export default function AdminCustomizePage() {
           {feedback.message}
         </div>
       )}
+
+      {/* ================================================================
+          SECTION: Sélecteur de thème
+          ================================================================ */}
+      <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
+        <SectionHeader icon={SwatchBook} title="Thème de la boutique" />
+        <p className="mb-5 text-sm text-[var(--text-secondary)]">
+          Sélectionnez un thème pour pré-remplir le formulaire avec ses valeurs par défaut. Vous
+          pouvez ensuite ajuster chaque paramètre avant de sauvegarder.
+        </p>
+        <ThemeSwitcher onSelect={handleThemeSelect} />
+      </div>
 
       {/* ================================================================
           SECTION: Identité de la marque

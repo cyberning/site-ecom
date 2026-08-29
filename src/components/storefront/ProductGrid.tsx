@@ -65,7 +65,7 @@ export default function ProductGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-[calc(var(--spacing-unit)*6)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {products.map((product) => {
         const primaryImage = product.images.find((img) => img.isPrimary) || product.images[0];
         return (

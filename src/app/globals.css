@@ -31,6 +31,18 @@ body {
   font-family: var(--font-primary), Arial, Helvetica, sans-serif;
 }
 
+/* Police des titres : câblée sur custom_font_heading via --font-heading
+   (défini dans themes.css et surchargé par applyCustomizationsToDocument).
+   Fallback sur --font-primary si --font-heading n'est pas défini. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading, var(--font-primary));
+}
+
 /* Animation d'entrée subtile pour les cartes et tableaux du dashboard */
 @keyframes fade-in-up {
   from {

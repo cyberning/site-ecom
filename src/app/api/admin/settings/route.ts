@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -37,6 +38,13 @@ export async function PUT(request: NextRequest) {
     update: { value, type, category, description },
     create: { key, value, type, category, description },
   });
+
+  // Filet de sécurité : invalide tout cache taggé "active-theme" (le layout racine
+  // lit désormais le thème directement en DB, mais ce tag protège contre un futur
+  // retour du caching). Sans effet si aucun cache ne porte ce tag.
+  if (key === "active_theme") {
+    revalidateTag("active-theme");
+  }
 
   return NextResponse.json(setting);
 }

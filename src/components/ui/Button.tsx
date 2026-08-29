@@ -12,8 +12,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center font-medium transition-[var(--transition)] disabled:cursor-not-allowed disabled:opacity-50",
-          "rounded-[var(--radius-sm)]",
+          "inline-flex items-center justify-center px-[var(--btn-padding-x)] py-[var(--btn-padding-y)] font-[weight:var(--btn-font-weight)] transition-[var(--transition)] disabled:cursor-not-allowed disabled:opacity-50",
+          "rounded-[var(--btn-radius)]",
           // Variants
           variant === "primary" && "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]",
           variant === "secondary" &&
@@ -21,10 +21,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           variant === "ghost" &&
             "text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--accent)]",
           variant === "danger" && "bg-red-500 text-white hover:bg-red-600",
-          // Sizes
-          size === "sm" && "px-3 py-1.5 text-xs",
-          size === "md" && "px-4 py-2.5 text-sm",
-          size === "lg" && "px-6 py-3 text-base",
+          // Sizes (ne contrôlent plus que la taille du texte)
+          size === "sm" && "text-xs",
+          size === "md" && "text-sm",
+          size === "lg" && "text-base",
           className
         )}
         {...props}

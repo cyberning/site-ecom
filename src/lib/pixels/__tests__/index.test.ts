@@ -102,12 +102,13 @@ describe("MetaPixelProvider", () => {
   it("utilise le token passé en paramètre优先 sur env", async () => {
     process.env.META_CAPI_ACCESS_TOKEN = "env-token";
     const mockResponse = { json: vi.fn().mockResolvedValue({}) };
-    global.fetch = vi.fn().mockResolvedValue(mockResponse);
+    const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+    global.fetch = fetchMock as unknown as typeof fetch;
 
     const provider = new MetaPixelProvider();
     await provider.sendEvent("pixel-123", mockEvent, "param-token");
 
-    const [url] = global.fetch.mock.calls[0];
+    const [url] = fetchMock.mock.calls[0];
     expect(url).toContain("access_token=param-token");
 
     delete process.env.META_CAPI_ACCESS_TOKEN;
@@ -133,13 +134,14 @@ describe("TikTokPixelProvider", () => {
     const mockResponse = {
       json: vi.fn().mockResolvedValue({ code: 0, message: "OK" }),
     };
-    global.fetch = vi.fn().mockResolvedValue(mockResponse);
+    const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+    global.fetch = fetchMock as unknown as typeof fetch;
 
     const provider = new TikTokPixelProvider();
     await provider.sendEvent("tiktok-pixel", mockEvent);
 
     expect(global.fetch).toHaveBeenCalledOnce();
-    const [url, options] = global.fetch.mock.calls[0];
+    const [url, options] = fetchMock.mock.calls[0];
     expect(url).toContain("access_token=tiktok-token");
     expect(options.method).toBe("POST");
 

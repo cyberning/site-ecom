@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_Arabic } from "next/font/google";
 import { cookies } from "next/headers";
-import { unstable_cache } from "next/cache";
 import AuthProvider from "@/providers/AuthProvider";
 import ThemeProvider from "@/providers/ThemeProvider";
 import IntlProvider from "@/providers/IntlProvider";
@@ -13,27 +12,25 @@ import "./globals.css";
 const VALID_THEMES = ["NEUMORPHISM", "LUXURY", "VIBRANT", "ORGANIC", "TECH"] as const;
 type ThemeType = (typeof VALID_THEMES)[number];
 
-// Lecture du thème actif depuis la DB, mise en cache cross-requêtes (60s).
-// Évite une requête Prisma à chaque chargement de page (layout racine = toutes les
-// routes, storefront inclus). Le cookie navigateur reste prioritaire côté client ;
-// le cache DB sert uniquement de fallback et se rafraîchit au plus tard après 60s.
-const getActiveTheme = unstable_cache(
-  async (): Promise<ThemeType> => {
-    try {
-      const setting = await prisma.setting.findUnique({
-        where: { key: "active_theme" },
-      });
-      const value = setting?.value as string | undefined;
-      return value && (VALID_THEMES as readonly string[]).includes(value)
-        ? (value as ThemeType)
-        : "NEUMORPHISM";
-    } catch {
-      return "NEUMORPHISM";
-    }
-  },
-  ["active-theme"],
-  { revalidate: 60 }
-);
+// Lecture directe du thème actif en DB — volontairement SANS cache.
+// Le layout racine étant rendu pour toutes les routes, un cache cross-requêtes
+// (unstable_cache + revalidate) s'est avéré peu fiable en production : l'entrée
+// n'expirait jamais, donc le storefront restait bloqué sur l'ancien thème après
+// un changement admin. Une lecture directe (clé unique indexée) a un coût
+// négligeable et garantit que le storefront reflète immédiatement le thème DB.
+async function getActiveTheme(): Promise<ThemeType> {
+  try {
+    const setting = await prisma.setting.findUnique({
+      where: { key: "active_theme" },
+    });
+    const value = setting?.value as string | undefined;
+    return value && (VALID_THEMES as readonly string[]).includes(value)
+      ? (value as ThemeType)
+      : "NEUMORPHISM";
+  } catch {
+    return "NEUMORPHISM";
+  }
+}
 
 const inter = Inter({ subsets: ["latin"] });
 const notoArabic = Noto_Sans_Arabic({
@@ -78,6 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   // Thème sauvegardé en DB — utilisé comme fallback quand le cookie est absent
   const dbTheme = await getActiveTheme();
+  const validThemesJson = JSON.stringify(VALID_THEMES);
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
@@ -86,17 +84,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
+                var validThemes = ${validThemesJson};
+                var fallback = '${dbTheme}';
                 try {
                   var theme = document.cookie.split(';').find(function(c) {
                     return c.trim().startsWith('theme=');
                   });
-                  if (theme) {
-                    document.documentElement.setAttribute('data-theme', theme.split('=')[1]);
+                  var value = theme ? theme.split('=')[1] : null;
+                  if (value && validThemes.indexOf(value) !== -1) {
+                    document.documentElement.setAttribute('data-theme', value);
                   } else {
-                    document.documentElement.setAttribute('data-theme', '${dbTheme}');
+                    document.documentElement.setAttribute('data-theme', fallback);
                   }
                 } catch(e) {
-                  document.documentElement.setAttribute('data-theme', '${dbTheme}');
+                  document.documentElement.setAttribute('data-theme', fallback);
                 }
               })();
             `,

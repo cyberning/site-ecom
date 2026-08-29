@@ -15,7 +15,6 @@ import {
   Package,
   ChevronRight,
 } from "lucide-react";
-import ThemeSwitcher from "@/components/ui/ThemeSwitcher";
 
 // recharts est un bundle lourd (~140 KB gzip) : chargé dynamiquement, uniquement côté client
 const OrdersChart = dynamic(() => import("@/components/admin/OrdersChart"), {
@@ -208,21 +207,8 @@ export default function AdminDashboard() {
             })}
       </div>
 
-      {/* ---- Chart + Theme row ---- */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Chart — takes 2 cols */}
-        <div className="xl:col-span-2">
-          {loading ? <ChartSkeleton /> : <OrdersChart data={stats?.ordersLast7Days ?? []} />}
-        </div>
-
-        {/* Theme picker — takes 1 col */}
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-neumorphic)]">
-          <h3 className="mb-5 text-base font-semibold text-[var(--text-primary)]">
-            Personnalisation du thème
-          </h3>
-          <ThemeSwitcher />
-        </div>
-      </div>
+      {/* ---- Chart ---- */}
+      <div>{loading ? <ChartSkeleton /> : <OrdersChart data={stats?.ordersLast7Days ?? []} />}</div>
 
       {/* ---- Recent Orders Table ---- */}
       {loading ? (

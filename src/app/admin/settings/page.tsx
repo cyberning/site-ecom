@@ -29,14 +29,6 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
   delivery: { label: "Livraison", order: 2 },
 };
 
-const THEME_OPTIONS = [
-  { value: "NEUMORPHISM", label: "Néomorphisme" },
-  { value: "LUXURY", label: "Luxe" },
-  { value: "VIBRANT", label: "Vibrant" },
-  { value: "ORGANIC", label: "Organique" },
-  { value: "TECH", label: "Tech" },
-];
-
 const LOCALE_OPTIONS = [
   { value: "fr", label: "Français" },
   { value: "en", label: "Anglais" },
@@ -94,7 +86,10 @@ export default function AdminSettings() {
   };
 
   const handleSave = async () => {
-    const entries = Object.entries(modified);
+    // active_theme est géré par la page /admin/customize (sauvegarde immédiate
+    // cookie + data-theme + DB), il ne doit donc jamais transiter par la
+    // sauvegarde globale.
+    const entries = Object.entries(modified).filter(([key]) => key !== "active_theme");
     if (entries.length === 0) {
       setFeedback({ type: "error", message: "Aucune modification à sauvegarder." });
       return;
@@ -157,7 +152,12 @@ export default function AdminSettings() {
   };
 
   // Group settings by category
+  // La catégorie "customize" (clés custom_*) est gérée par la page dédiée /admin/customize :
+  // on l'exclut de l'affichage ici pour éviter les champs bruts redondants.
+  // active_theme est également exclu : il est géré par le sélecteur de thème de /admin/customize.
   const grouped = settings.reduce<Record<string, Setting[]>>((acc, s) => {
+    if (s.category === "customize") return acc;
+    if (s.key === "active_theme") return acc;
     const cat = s.category || "general";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(s);
@@ -178,18 +178,6 @@ export default function AdminSettings() {
     const fieldId = `setting-${setting.key}`;
 
     switch (setting.key) {
-      case "active_theme":
-        return (
-          <Select
-            key={setting.key}
-            id={fieldId}
-            label={setting.description || "Thème actif"}
-            options={THEME_OPTIONS}
-            value={currentValue}
-            onChange={(e) => handleChange(setting.key, e.target.value)}
-          />
-        );
-
       case "active_locale":
         return (
           <Select

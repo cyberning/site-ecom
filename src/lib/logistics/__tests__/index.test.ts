@@ -55,7 +55,8 @@ describe("EcotrackProvider", () => {
           label_url: "https://example.com/label.pdf",
         }),
       };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+      global.fetch = fetchMock as unknown as typeof fetch;
 
       const provider = new EcotrackProvider();
       const result = await provider.createShipment(mockShipmentRequest);
@@ -65,7 +66,7 @@ describe("EcotrackProvider", () => {
       expect(result.labelUrl).toBe("https://example.com/label.pdf");
       expect(global.fetch).toHaveBeenCalledOnce();
 
-      const [url, options] = global.fetch.mock.calls[0];
+      const [url, options] = fetchMock.mock.calls[0];
       expect(url).toContain("/shipments");
       expect(options.method).toBe("POST");
       expect(options.headers.Authorization).toBe("Bearer eco-key-123");
@@ -116,7 +117,8 @@ describe("EcotrackProvider", () => {
         ok: true,
         json: vi.fn().mockResolvedValue({ tracking_number: "ECO-002" }),
       };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+      global.fetch = fetchMock as unknown as typeof fetch;
 
       const provider = new EcotrackProvider();
       await provider.createShipment({
@@ -124,7 +126,7 @@ describe("EcotrackProvider", () => {
         deliveryMode: "STOP_DESK",
       });
 
-      const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
       expect(body.delivery_type).toBe("stopdesk");
 
       delete process.env.ECOTRACK_API_KEY;
@@ -208,14 +210,15 @@ describe("EcotrackProvider", () => {
       process.env.ECOTRACK_API_KEY = "eco-key-123";
 
       const mockResponse = { ok: true };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+      global.fetch = fetchMock as unknown as typeof fetch;
 
       const provider = new EcotrackProvider();
       const result = await provider.cancelShipment("DZ-test123-ABC");
 
       expect(result.success).toBe(true);
       expect(global.fetch).toHaveBeenCalledOnce();
-      const [url, options] = global.fetch.mock.calls[0];
+      const [url, options] = fetchMock.mock.calls[0];
       expect(url).toContain("/cancel");
       expect(options.method).toBe("DELETE");
 

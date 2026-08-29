@@ -5,6 +5,8 @@ import {
   phoneSchema,
   loginSchema,
   orderStatusSchema,
+  changeEmailSchema,
+  changePasswordSchema,
 } from "../validators";
 
 describe("phoneSchema", () => {
@@ -213,5 +215,45 @@ describe("orderStatusSchema", () => {
       note: "Commande confirmée par l'admin",
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("changeEmailSchema", () => {
+  it("valide un email correct", () => {
+    expect(changeEmailSchema.safeParse({ email: "user@test.com" }).success).toBe(true);
+  });
+
+  it("rejette un email invalide", () => {
+    expect(changeEmailSchema.safeParse({ email: "not-an-email" }).success).toBe(false);
+  });
+
+  it("rejette une chaîne vide", () => {
+    expect(changeEmailSchema.safeParse({ email: "" }).success).toBe(false);
+  });
+});
+
+describe("changePasswordSchema", () => {
+  it("valide un objet avec currentPassword et newPassword de 6+ caractères", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "oldpass",
+      newPassword: "newpass",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejette si currentPassword fait moins de 6 caractères", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "12345",
+      newPassword: "newpass",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejette si newPassword fait moins de 6 caractères", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "oldpass",
+      newPassword: "12345",
+    });
+    expect(result.success).toBe(false);
   });
 });
