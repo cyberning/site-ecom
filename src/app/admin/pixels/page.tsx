@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { BarChart3 } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -38,6 +39,7 @@ const PROVIDER_BADGE: Record<string, "info" | "warning" | "success"> = {
 // ─── Page ───────────────────────────────────────────────────────────
 
 export default function AdminPixels() {
+  const t = useTranslations("admin");
   const [pixels, setPixels] = useState<Pixel[]>([]);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,7 @@ export default function AdminPixels() {
       setPixels(data.pixels || []);
       setProviders(data.availableProviders || []);
     } catch {
-      setMessage({ type: "error", message: "Erreur lors du chargement" });
+      setMessage({ type: "error", message: t("pixelsPage.loadError") });
     } finally {
       setLoading(false);
     }
@@ -92,7 +94,7 @@ export default function AdminPixels() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", message: "Pixel ajouté avec succès" });
+        setMessage({ type: "success", message: t("pixelsPage.added") });
         setShowAdd(false);
         setForm({ provider: "META", pixelId: "", name: "", accessToken: "" });
         fetchPixels();
@@ -101,7 +103,7 @@ export default function AdminPixels() {
         setMessage({ type: "error", message: data.error });
       }
     } catch {
-      setMessage({ type: "error", message: "Erreur réseau" });
+      setMessage({ type: "error", message: t("pixelsPage.networkError") });
     } finally {
       setSaving(false);
     }
@@ -120,13 +122,13 @@ export default function AdminPixels() {
         const data = await res.json();
         setMessage({
           type: "error",
-          message: data.error || "Erreur lors de la mise à jour du pixel",
+          message: data.error || t("pixelsPage.updateError"),
         });
         return;
       }
       fetchPixels();
     } catch {
-      setMessage({ type: "error", message: "Erreur réseau lors de la mise à jour du pixel" });
+      setMessage({ type: "error", message: t("pixelsPage.updateNetworkError") });
     }
   };
 
@@ -140,14 +142,14 @@ export default function AdminPixels() {
         const data = await res.json();
         setMessage({
           type: "error",
-          message: data.error || "Erreur lors de la suppression du pixel",
+          message: data.error || t("pixelsPage.deleteError"),
         });
         return;
       }
       setDeleteId(null);
       fetchPixels();
     } catch {
-      setMessage({ type: "error", message: "Erreur réseau lors de la suppression du pixel" });
+      setMessage({ type: "error", message: t("pixelsPage.deleteNetworkError") });
     }
   };
 
@@ -156,7 +158,7 @@ export default function AdminPixels() {
   const testFire = (pixel: Pixel) => {
     setMessage({
       type: "info",
-      message: `Test envoyé pour ${pixel.name} (${pixel.pixelId}) — vérifiez la console serveur`,
+      message: t("pixelsPage.testSent", { name: pixel.name, pixelId: pixel.pixelId }),
     });
   };
 
@@ -167,13 +169,11 @@ export default function AdminPixels() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Tracking Pixels</h1>
-          <p className="text-sm text-[var(--text-muted)]">
-            Gérez vos pixels de conversion serveur-side (CAPI / Events API)
-          </p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("pixelsPage.title")}</h1>
+          <p className="text-sm text-[var(--text-muted)]">{t("pixelsPage.subtitle")}</p>
         </div>
         <Button onClick={() => setShowAdd(!showAdd)}>
-          {showAdd ? "Annuler" : "+ Ajouter un pixel"}
+          {showAdd ? t("pixelsPage.cancel") : t("pixelsPage.addPixel")}
         </Button>
       </div>
 
@@ -185,12 +185,14 @@ export default function AdminPixels() {
       {/* Formulaire d'ajout */}
       {showAdd && (
         <Card className="p-6">
-          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Ajouter un pixel</h3>
+          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">
+            {t("pixelsPage.formTitle")}
+          </h3>
           <form onSubmit={handleAdd} className="space-y-4">
             {/* Choix du provider */}
             <div>
               <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-                Provider
+                {t("pixelsPage.provider")}
               </label>
               <div className="flex flex-wrap gap-3">
                 {providers.map((p) => (
@@ -206,7 +208,9 @@ export default function AdminPixels() {
                     }`}
                   >
                     <span className="font-medium">{p.name}</span>
-                    <span className="ml-1 text-xs text-[var(--text-muted)]">— {p.description}</span>
+                    <span className="ml-1 text-xs text-[var(--text-muted)]">
+                      {t("pixelsPage.providerDesc", { description: p.description })}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -214,32 +218,32 @@ export default function AdminPixels() {
 
             {/* Nom */}
             <Input
-              label="Nom (optionnel)"
+              label={t("pixelsPage.nameOptional")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Ex: Pixel principal Meta"
+              placeholder={t("pixelsPage.namePlaceholder")}
             />
 
             {/* Pixel ID */}
             <Input
-              label="Pixel ID / Conversion Label"
+              label={t("pixelsPage.pixelId")}
               value={form.pixelId}
               onChange={(e) => setForm((f) => ({ ...f, pixelId: e.target.value }))}
               required
-              placeholder="Ex: 123456789 ou AW-XXXXXXXXX"
+              placeholder={t("pixelsPage.pixelIdPlaceholder")}
             />
 
             {/* Access Token */}
             <Input
-              label="Access Token (optionnel)"
+              label={t("pixelsPage.accessToken")}
               value={form.accessToken}
               onChange={(e) => setForm((f) => ({ ...f, accessToken: e.target.value }))}
-              placeholder="Token API pour le tracking serveur"
+              placeholder={t("pixelsPage.accessTokenPlaceholder")}
               type="password"
             />
 
             <Button type="submit" disabled={saving}>
-              {saving ? "Ajout..." : "Ajouter le pixel"}
+              {saving ? t("pixelsPage.adding") : t("pixelsPage.add")}
             </Button>
           </form>
         </Card>
@@ -256,10 +260,8 @@ export default function AdminPixels() {
             className="mx-auto mb-4 h-12 w-12 text-[var(--text-muted)]"
             aria-hidden="true"
           />
-          <p className="text-lg font-medium text-[var(--text-primary)]">Aucun pixel configuré</p>
-          <p className="mt-2 text-sm">
-            Ajoutez un pixel Meta, TikTok ou Google pour tracker vos conversions serveur-side.
-          </p>
+          <p className="text-lg font-medium text-[var(--text-primary)]">{t("pixelsPage.empty")}</p>
+          <p className="mt-2 text-sm">{t("pixelsPage.emptyHint")}</p>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -270,7 +272,7 @@ export default function AdminPixels() {
                 <ToggleSwitch
                   checked={pixel.isActive}
                   onChange={() => toggleActive(pixel)}
-                  label={pixel.isActive ? "Désactiver" : "Activer"}
+                  label={pixel.isActive ? t("pixelsPage.disable") : t("pixelsPage.enable")}
                 />
               </div>
 
@@ -279,7 +281,7 @@ export default function AdminPixels() {
 
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => testFire(pixel)}>
-                  Tester
+                  {t("pixelsPage.test")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -287,7 +289,7 @@ export default function AdminPixels() {
                   onClick={() => setDeleteId(pixel.id)}
                   className="text-red-500 hover:text-red-600"
                 >
-                  Supprimer
+                  {t("pixelsPage.delete")}
                 </Button>
               </div>
             </Card>
@@ -296,16 +298,20 @@ export default function AdminPixels() {
       )}
 
       {/* Modal de confirmation de suppression */}
-      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Supprimer le pixel">
+      <Modal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title={t("pixelsPage.deleteTitle")}
+      >
         <p className="mb-6 text-[var(--text-secondary)]">
-          Êtes-vous sûr de vouloir supprimer ce pixel ? Cette action est irréversible.
+          {t("pixelsPage.deleteConfirm")} {t("pixelsPage.deleteIrreversible")}
         </p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setDeleteId(null)}>
-            Annuler
+            {t("pixelsPage.cancel")}
           </Button>
           <Button variant="danger" onClick={deletePixel}>
-            Supprimer
+            {t("pixelsPage.delete")}
           </Button>
         </div>
       </Modal>

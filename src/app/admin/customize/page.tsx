@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import {
   Palette,
   Type,
@@ -49,30 +50,34 @@ const FONT_OPTIONS = [
   "Montserrat",
 ];
 
-const BUTTON_STYLES: { value: string; label: string; preview: string }[] = [
-  { value: "rounded", label: "Rond", preview: "rounded-[var(--radius-sm)]" },
-  { value: "square", label: "Carré", preview: "rounded-none" },
-  { value: "pill", label: "Pill", preview: "rounded-full" },
+const BUTTON_STYLES: { value: string; labelKey: string; preview: string }[] = [
+  { value: "rounded", labelKey: "buttonStyleRounded", preview: "rounded-[var(--radius-sm)]" },
+  { value: "square", labelKey: "buttonStyleSquare", preview: "rounded-none" },
+  { value: "pill", labelKey: "buttonStylePill", preview: "rounded-full" },
 ];
 
-const CARD_STYLES: { value: string; label: string; description: string }[] = [
-  { value: "neumorphic", label: "Néomorphique", description: "Ombres douces et effets en relief" },
-  { value: "flat", label: "Plat", description: "Design épuré sans ombre" },
-  { value: "bordered", label: "Borduré", description: "Contour visible distinct" },
-  { value: "elevated", label: "Surélevé", description: "Ombre portée prononcée" },
+const CARD_STYLES: { value: string; labelKey: string; descriptionKey: string }[] = [
+  {
+    value: "neumorphic",
+    labelKey: "cardStyleNeumorphic",
+    descriptionKey: "cardStyleNeumorphicDesc",
+  },
+  { value: "flat", labelKey: "cardStyleFlat", descriptionKey: "cardStyleFlatDesc" },
+  { value: "bordered", labelKey: "cardStyleBordered", descriptionKey: "cardStyleBorderedDesc" },
+  { value: "elevated", labelKey: "cardStyleElevated", descriptionKey: "cardStyleElevatedDesc" },
 ];
 
-const SHADOW_LEVELS: { value: string; label: string }[] = [
-  { value: "none", label: "Aucune" },
-  { value: "light", label: "Légère" },
-  { value: "medium", label: "Moyenne" },
-  { value: "strong", label: "Forte" },
+const SHADOW_LEVELS: { value: string; labelKey: string }[] = [
+  { value: "none", labelKey: "shadowNone" },
+  { value: "light", labelKey: "shadowLight" },
+  { value: "medium", labelKey: "shadowMedium" },
+  { value: "strong", labelKey: "shadowStrong" },
 ];
 
 const FONT_WEIGHT_OPTIONS = [
-  { value: "normal", label: "Normal (400)" },
-  { value: "medium", label: "Medium (500)" },
-  { value: "bold", label: "Bold (700)" },
+  { value: "normal", labelKey: "weightNormal" },
+  { value: "medium", labelKey: "weightMedium" },
+  { value: "bold", labelKey: "weightBold" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -92,11 +97,13 @@ function ColorPicker({
   settingKey,
   value,
   onChange,
+  t,
 }: {
   label: string;
   settingKey: string;
   value: string;
   onChange: (key: string, val: string) => void;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -114,7 +121,7 @@ function ColorPicker({
             value={value}
             onChange={(e) => onChange(settingKey, e.target.value)}
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-            aria-label={`Choisir ${label}`}
+            aria-label={t("customizePage.chooseColor", { label })}
           />
           <div
             className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border)] shadow-sm transition-transform hover:scale-110"
@@ -127,7 +134,7 @@ function ColorPicker({
             value={value}
             onChange={(e) => onChange(settingKey, e.target.value)}
             className="font-mono uppercase"
-            aria-label={`Valeur hex pour ${label}`}
+            aria-label={t("customizePage.hexValue", { label })}
           />
         </div>
       </div>
@@ -143,6 +150,7 @@ function RangeSlider({
   max,
   unit,
   onChange,
+  t,
 }: {
   label: string;
   settingKey: string;
@@ -151,6 +159,7 @@ function RangeSlider({
   max: number;
   unit: string;
   onChange: (key: string, val: number) => void;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -174,7 +183,7 @@ function RangeSlider({
         value={value}
         onChange={(e) => onChange(settingKey, Number(e.target.value))}
         className="w-full cursor-pointer accent-[var(--accent)]"
-        aria-label={`${label}: ${value}${unit}`}
+        aria-label={t("customizePage.rangeValue", { label, value, unit })}
       />
     </div>
   );
@@ -222,40 +231,50 @@ function ActionButtons({
   onReset,
   onSave,
   saving,
+  t,
 }: {
   onReset: () => void;
   onSave: () => void;
   saving: boolean;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }) {
   return (
     <>
       <button
         onClick={onReset}
         className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-[var(--transition)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-        aria-label="Réinitialiser les paramètres"
+        aria-label={t("customizePage.resetAria")}
       >
         <RotateCcw className="h-4 w-4" />
-        Réinitialiser
+        {t("customizePage.reset")}
       </button>
       <button
         onClick={onSave}
         disabled={saving}
         className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-[var(--transition)] hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label="Sauvegarder les paramètres"
+        aria-label={t("customizePage.saveAria")}
       >
         {saving ? (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
         ) : (
           <Save className="h-4 w-4" />
         )}
-        {saving ? "Sauvegarde..." : "Sauvegarder"}
+        {saving ? t("customizePage.saving") : t("customizePage.save")}
       </button>
     </>
   );
 }
 
 // Aperçu de la bannière hero avec fallback en cas d'erreur d'image
-function HeroPreview({ url, onRemove }: { url: string; onRemove: () => void }) {
+function HeroPreview({
+  url,
+  onRemove,
+  t,
+}: {
+  url: string;
+  onRemove: () => void;
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
   const [error, setError] = useState(false);
 
   return (
@@ -263,13 +282,13 @@ function HeroPreview({ url, onRemove }: { url: string; onRemove: () => void }) {
       {error ? (
         <div className="flex h-48 w-full flex-col items-center justify-center gap-2 bg-[var(--bg-secondary)] text-[var(--text-muted)]">
           <ImageIcon className="h-8 w-8" aria-hidden="true" />
-          <span className="text-sm">Image indisponible</span>
+          <span className="text-sm">{t("customizePage.imageUnavailable")}</span>
         </div>
       ) : (
         <img
           key={url}
           src={url}
-          alt="Aperçu de la bannière"
+          alt={t("customizePage.heroPreviewAlt")}
           className="h-48 w-full object-cover"
           loading="lazy"
           onError={() => setError(true)}
@@ -279,7 +298,7 @@ function HeroPreview({ url, onRemove }: { url: string; onRemove: () => void }) {
         type="button"
         onClick={onRemove}
         className="absolute top-2 right-2 rounded-full bg-black/60 p-1.5 text-white transition-[var(--transition)] hover:bg-red-500"
-        aria-label="Supprimer l'image"
+        aria-label={t("customizePage.deleteImageAria")}
       >
         ✕
       </button>
@@ -291,7 +310,13 @@ function HeroPreview({ url, onRemove }: { url: string; onRemove: () => void }) {
 // Live Preview Card
 // ---------------------------------------------------------------------------
 
-function LivePreviewCard({ values }: { values: Record<string, string | number> }) {
+function LivePreviewCard({
+  values,
+  t,
+}: {
+  values: Record<string, string | number>;
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
   const { theme } = useTheme();
   const fallback = getThemeDefaults(theme);
   const accent = String(values.custom_accent_color || fallback.custom_accent_color);
@@ -367,9 +392,8 @@ function LivePreviewCard({ values }: { values: Record<string, string | number> }
             fontSize: `${Math.max(12, fontSizeBase - 2)}px`,
           }}
         >
-          {values.custom_store_tagline || String(fallback.custom_store_tagline)}. Ceci est un aperçu
-          en direct de votre personnalisation. Les couleurs, polices et espacements sont mis à jour
-          en temps réel.
+          {values.custom_store_tagline || String(fallback.custom_store_tagline)}.{" "}
+          {t("customizePage.livePreviewText")}
         </p>
         <button
           style={{
@@ -384,7 +408,7 @@ function LivePreviewCard({ values }: { values: Record<string, string | number> }
             cursor: "pointer",
           }}
         >
-          Ajouter au panier
+          {t("customizePage.addToCart")}
         </button>
       </div>
     </div>
@@ -397,6 +421,7 @@ function LivePreviewCard({ values }: { values: Record<string, string | number> }
 
 export default function AdminCustomizePage() {
   const { theme } = useTheme();
+  const t = useTranslations("admin");
   const [values, setValues] = useState<Record<string, string | number>>(() => ({
     ...getThemeDefaults(theme),
   }));
@@ -421,7 +446,7 @@ export default function AdminCustomizePage() {
     try {
       setLoading(true);
       const res = await fetch("/api/admin/customize");
-      if (!res.ok) throw new Error("Erreur lors du chargement");
+      if (!res.ok) throw new Error(t("customizePage.loadError"));
       const data: SettingItem[] = await res.json();
 
       const defaults = getThemeDefaults(themeRef.current);
@@ -442,7 +467,7 @@ export default function AdminCustomizePage() {
     } catch {
       setFeedback({
         type: "error",
-        message: "Impossible de charger les paramètres de personnalisation.",
+        message: t("customizePage.loadError2"),
       });
     } finally {
       setLoading(false);
@@ -472,11 +497,11 @@ export default function AdminCustomizePage() {
       // Validation côté client
       const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
       if (!allowedTypes.includes(file.type)) {
-        setHeroUploadError("Type non autorisé. Utilisez JPG, PNG, WebP ou GIF.");
+        setHeroUploadError(t("customizePage.uploadTypeError"));
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        setHeroUploadError("Fichier trop volumineux (max 5 MB)");
+        setHeroUploadError(t("customizePage.uploadSizeError"));
         return;
       }
 
@@ -490,13 +515,13 @@ export default function AdminCustomizePage() {
         });
         const data = await res.json();
         if (!res.ok) {
-          setHeroUploadError(data.error || "Erreur lors de l'upload");
+          setHeroUploadError(data.error || t("customizePage.uploadError"));
           return;
         }
         // Mettre à jour la valeur de l'image hero avec l'URL retournée
         handleChange("custom_hero_image", data.url);
       } catch {
-        setHeroUploadError("Erreur réseau lors de l'upload");
+        setHeroUploadError(t("customizePage.networkError"));
       } finally {
         setHeroUploading(false);
       }
@@ -541,14 +566,14 @@ export default function AdminCustomizePage() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Erreur lors de la sauvegarde");
+        throw new Error(err.error || t("customizePage.saveError"));
       }
 
-      setFeedback({ type: "success", message: "Personnalisation sauvegardée avec succès." });
+      setFeedback({ type: "success", message: t("customizePage.saved") });
     } catch (err) {
       setFeedback({
         type: "error",
-        message: err instanceof Error ? err.message : "Erreur inconnue",
+        message: err instanceof Error ? err.message : t("customizePage.unknownError"),
       });
     } finally {
       setSaving(false);
@@ -560,11 +585,9 @@ export default function AdminCustomizePage() {
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-            Personnalisation du Frontend
+            {t("customizePage.title")}
           </h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Configurez l&apos;apparence de votre boutique
-          </p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">{t("customizePage.subtitle")}</p>
         </div>
         <Skeleton />
       </div>
@@ -577,14 +600,12 @@ export default function AdminCustomizePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-            Personnalisation du Frontend
+            {t("customizePage.title")}
           </h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Configurez l&apos;apparence de votre boutique
-          </p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">{t("customizePage.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <ActionButtons onReset={handleReset} onSave={handleSave} saving={saving} />
+          <ActionButtons onReset={handleReset} onSave={handleSave} saving={saving} t={t} />
         </div>
       </div>
 
@@ -608,10 +629,9 @@ export default function AdminCustomizePage() {
           SECTION: Sélecteur de thème
           ================================================================ */}
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <SectionHeader icon={SwatchBook} title="Thème de la boutique" />
+        <SectionHeader icon={SwatchBook} title={t("customizePage.themeSection")} />
         <p className="mb-5 text-sm text-[var(--text-secondary)]">
-          Sélectionnez un thème pour pré-remplir le formulaire avec ses valeurs par défaut. Vous
-          pouvez ensuite ajuster chaque paramètre avant de sauvegarder.
+          {t("customizePage.themeExplanation")}
         </p>
         <ThemeSwitcher onSelect={handleThemeSelect} />
       </div>
@@ -620,18 +640,18 @@ export default function AdminCustomizePage() {
           SECTION: Identité de la marque
           ================================================================ */}
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <SectionHeader icon={Palette} title="Identité de la marque" />
+        <SectionHeader icon={Palette} title={t("customizePage.brandSection")} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             id="store-name"
-            label="Nom du magasin"
+            label={t("customizePage.storeName")}
             type="text"
             value={String(values.custom_store_name)}
             onChange={(e) => handleChange("custom_store_name", e.target.value)}
           />
           <Input
             id="store-tagline"
-            label="Slogan"
+            label={t("customizePage.slogan")}
             type="text"
             value={String(values.custom_store_tagline)}
             onChange={(e) => handleChange("custom_store_tagline", e.target.value)}
@@ -641,7 +661,7 @@ export default function AdminCustomizePage() {
               htmlFor="footer-text"
               className="block text-sm font-medium text-[var(--text-primary)]"
             >
-              Texte du pied de page
+              {t("customizePage.footerText")}
             </label>
             <textarea
               id="footer-text"
@@ -653,14 +673,14 @@ export default function AdminCustomizePage() {
           </div>
           <Input
             id="contact-email"
-            label="Email de contact"
+            label={t("customizePage.contactEmail")}
             type="email"
             value={String(values.custom_contact_email)}
             onChange={(e) => handleChange("custom_contact_email", e.target.value)}
           />
           <Input
             id="contact-phone"
-            label="Téléphone"
+            label={t("customizePage.phone")}
             type="tel"
             value={String(values.custom_contact_phone)}
             onChange={(e) => handleChange("custom_contact_phone", e.target.value)}
@@ -668,7 +688,7 @@ export default function AdminCustomizePage() {
           <div className="sm:col-span-2">
             <Input
               id="contact-address"
-              label="Adresse"
+              label={t("customizePage.address")}
               type="text"
               value={String(values.custom_contact_address)}
               onChange={(e) => handleChange("custom_contact_address", e.target.value)}
@@ -681,21 +701,21 @@ export default function AdminCustomizePage() {
           SECTION: Bannière Hero
           ================================================================ */}
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <SectionHeader icon={Palette} title="Bannière Hero" />
+        <SectionHeader icon={Palette} title={t("customizePage.heroSection")} />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <Input
               id="hero-title"
-              label="Titre de la bannière"
+              label={t("customizePage.heroTitle")}
               type="text"
               value={String(values.custom_hero_title)}
               onChange={(e) => handleChange("custom_hero_title", e.target.value)}
-              placeholder="Les meilleurs produits au meilleur prix"
+              placeholder={t("customizePage.heroTitlePlaceholder")}
             />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <label className="block text-sm font-medium text-[var(--text-primary)]">
-              Image de bannière
+              {t("customizePage.heroImage")}
             </label>
 
             {/* Upload zone */}
@@ -717,16 +737,18 @@ export default function AdminCustomizePage() {
               {heroUploading ? (
                 <div className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent)]/30 border-t-[var(--accent)]" />
-                  <span className="text-sm text-[var(--text-muted)]">Upload en cours...</span>
+                  <span className="text-sm text-[var(--text-muted)]">
+                    {t("customizePage.uploading")}
+                  </span>
                 </div>
               ) : (
                 <>
                   <ImageIcon className="h-10 w-10 text-[var(--text-muted)]" aria-hidden="true" />
                   <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                    Glissez-déposez ou cliquez pour uploader une image
+                    {t("customizePage.dropzone")}
                   </p>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
-                    JPG, PNG, WebP, GIF — max 5 MB
+                    {t("customizePage.fileTypes")}
                   </p>
                   <input
                     type="file"
@@ -739,7 +761,7 @@ export default function AdminCustomizePage() {
                     htmlFor="hero-file-upload"
                     className="mt-3 cursor-pointer rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-[var(--transition)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
                   >
-                    Sélectionner un fichier
+                    {t("customizePage.selectFile")}
                   </label>
                 </>
               )}
@@ -751,11 +773,11 @@ export default function AdminCustomizePage() {
             <div>
               <Input
                 id="hero-image-url"
-                label="Ou saisir une URL manuellement"
+                label={t("customizePage.manualUrl")}
                 type="url"
                 value={String(values.custom_hero_image)}
                 onChange={(e) => handleChange("custom_hero_image", e.target.value)}
-                placeholder="https://exemple.com/image.jpg"
+                placeholder={t("customizePage.urlPlaceholder")}
               />
             </div>
 
@@ -764,6 +786,7 @@ export default function AdminCustomizePage() {
               <HeroPreview
                 url={String(values.custom_hero_image)}
                 onRemove={() => handleChange("custom_hero_image", "")}
+                t={t}
               />
             )}
           </div>
@@ -774,49 +797,56 @@ export default function AdminCustomizePage() {
           SECTION: Couleurs
           ================================================================ */}
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <SectionHeader icon={Palette} title="Couleurs" />
+        <SectionHeader icon={Palette} title={t("customizePage.colorsSection")} />
         <div className="grid gap-5 sm:grid-cols-2">
           <ColorPicker
-            label="Couleur d'accentuation"
+            label={t("customizePage.accentColor")}
             settingKey="custom_accent_color"
             value={String(values.custom_accent_color)}
             onChange={handleChange}
+            t={t}
           />
           <ColorPicker
-            label="Fond principal"
+            label={t("customizePage.primaryBg")}
             settingKey="custom_bg_primary"
             value={String(values.custom_bg_primary)}
             onChange={handleChange}
+            t={t}
           />
           <ColorPicker
-            label="Fond secondaire"
+            label={t("customizePage.secondaryBg")}
             settingKey="custom_bg_secondary"
             value={String(values.custom_bg_secondary)}
             onChange={handleChange}
+            t={t}
           />
           <ColorPicker
-            label="Fond des cartes"
+            label={t("customizePage.cardBg")}
             settingKey="custom_bg_card"
             value={String(values.custom_bg_card)}
             onChange={handleChange}
+            t={t}
           />
           <ColorPicker
-            label="Texte principal"
+            label={t("customizePage.primaryText")}
             settingKey="custom_text_primary"
             value={String(values.custom_text_primary)}
             onChange={handleChange}
+            t={t}
           />
           <ColorPicker
-            label="Texte secondaire"
+            label={t("customizePage.secondaryText")}
             settingKey="custom_text_secondary"
             value={String(values.custom_text_secondary)}
             onChange={handleChange}
+            t={t}
           />
           <ColorPicker
-            label="Couleur des bordures"
+            label={t("customizePage.borderColor")}
             settingKey="custom_border_color"
             value={String(values.custom_border_color)}
             onChange={handleChange}
+            t={t}
           />
         </div>
       </div>
@@ -825,11 +855,11 @@ export default function AdminCustomizePage() {
           SECTION: Typographie
           ================================================================ */}
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <SectionHeader icon={Type} title="Typographie" />
+        <SectionHeader icon={Type} title={t("customizePage.typographySection")} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Select
             id="font-primary"
-            label="Police principale"
+            label={t("customizePage.primaryFont")}
             value={fontDisplayName(String(values.custom_font_primary))}
             onChange={(e) => {
               const font = e.target.value;
@@ -847,7 +877,7 @@ export default function AdminCustomizePage() {
           />
           <Select
             id="font-heading"
-            label="Police des titres"
+            label={t("customizePage.headingFont")}
             value={fontDisplayName(String(values.custom_font_heading))}
             onChange={(e) => {
               const font = e.target.value;
@@ -864,22 +894,24 @@ export default function AdminCustomizePage() {
             options={FONT_OPTIONS.map((f) => ({ value: f, label: f }))}
           />
           <RangeSlider
-            label="Taille de base"
+            label={t("customizePage.baseSize")}
             settingKey="custom_font_size_base"
             value={Number(values.custom_font_size_base)}
             min={12}
             max={24}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
           <RangeSlider
-            label="Taille des titres"
+            label={t("customizePage.headingSize")}
             settingKey="custom_font_size_heading"
             value={Number(values.custom_font_size_heading)}
             min={18}
             max={48}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
         </div>
       </div>
@@ -888,52 +920,57 @@ export default function AdminCustomizePage() {
           SECTION: Mise en page
           ================================================================ */}
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <SectionHeader icon={Layout} title="Mise en page" />
+        <SectionHeader icon={Layout} title={t("customizePage.layoutSection")} />
         <div className="grid gap-4 sm:grid-cols-2">
           <RangeSlider
-            label="Border radius — SM"
+            label={t("customizePage.radiusSm")}
             settingKey="custom_border_radius_sm"
             value={Number(values.custom_border_radius_sm)}
             min={0}
             max={32}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
           <RangeSlider
-            label="Border radius — MD"
+            label={t("customizePage.radiusMd")}
             settingKey="custom_border_radius_md"
             value={Number(values.custom_border_radius_md)}
             min={0}
             max={32}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
           <RangeSlider
-            label="Border radius — LG"
+            label={t("customizePage.radiusLg")}
             settingKey="custom_border_radius_lg"
             value={Number(values.custom_border_radius_lg)}
             min={0}
             max={32}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
           <RangeSlider
-            label="Border radius — XL"
+            label={t("customizePage.radiusXl")}
             settingKey="custom_border_radius_xl"
             value={Number(values.custom_border_radius_xl)}
             min={0}
             max={32}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
           <RangeSlider
-            label="Unité d'espacement"
+            label={t("customizePage.spacingUnit")}
             settingKey="custom_spacing_unit"
             value={Number(values.custom_spacing_unit)}
             min={2}
             max={8}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
         </div>
       </div>
@@ -942,14 +979,17 @@ export default function AdminCustomizePage() {
           SECTION: Boutons
           ================================================================ */}
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <SectionHeader icon={MousePointer} title="Boutons" />
+        <SectionHeader icon={MousePointer} title={t("customizePage.buttonsSection")} />
 
         {/* Style selector cards */}
         <div className="mb-5">
-          <p className="mb-3 text-sm font-medium text-[var(--text-primary)]">Style</p>
+          <p className="mb-3 text-sm font-medium text-[var(--text-primary)]">
+            {t("customizePage.buttonStyle")}
+          </p>
           <div className="grid grid-cols-3 gap-3">
             {BUTTON_STYLES.map((style) => {
               const isSelected = values.custom_btn_style === style.value;
+              const styleLabel = t(`customizePage.${style.labelKey}`);
               return (
                 <button
                   key={style.value}
@@ -961,7 +1001,7 @@ export default function AdminCustomizePage() {
                       : "border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40"
                   )}
                   aria-pressed={isSelected}
-                  aria-label={`Style ${style.label}`}
+                  aria-label={t("customizePage.styleLabel", { label: styleLabel })}
                 >
                   <div
                     className={cn("h-4 w-16 bg-[var(--accent)] transition-all", style.preview)}
@@ -972,7 +1012,7 @@ export default function AdminCustomizePage() {
                       isSelected ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"
                     )}
                   >
-                    {style.label}
+                    {styleLabel}
                   </span>
                 </button>
               );
@@ -982,29 +1022,34 @@ export default function AdminCustomizePage() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <RangeSlider
-            label="Padding horizontal"
+            label={t("customizePage.paddingX")}
             settingKey="custom_btn_padding_x"
             value={Number(values.custom_btn_padding_x)}
             min={4}
             max={48}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
           <RangeSlider
-            label="Padding vertical"
+            label={t("customizePage.paddingY")}
             settingKey="custom_btn_padding_y"
             value={Number(values.custom_btn_padding_y)}
             min={2}
             max={24}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
           <Select
             id="btn-font-weight"
-            label="Épaisseur de police"
+            label={t("customizePage.fontWeight")}
             value={String(values.custom_btn_font_weight)}
             onChange={(e) => handleChange("custom_btn_font_weight", e.target.value)}
-            options={FONT_WEIGHT_OPTIONS}
+            options={FONT_WEIGHT_OPTIONS.map((o) => ({
+              value: o.value,
+              label: t(`customizePage.${o.labelKey}`),
+            }))}
           />
         </div>
       </div>
@@ -1013,14 +1058,17 @@ export default function AdminCustomizePage() {
           SECTION: Cartes
           ================================================================ */}
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <SectionHeader icon={CreditCard} title="Cartes" />
+        <SectionHeader icon={CreditCard} title={t("customizePage.cardsSection")} />
 
         {/* Card style selector */}
         <div className="mb-5">
-          <p className="mb-3 text-sm font-medium text-[var(--text-primary)]">Style</p>
+          <p className="mb-3 text-sm font-medium text-[var(--text-primary)]">
+            {t("customizePage.cardStyle")}
+          </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {CARD_STYLES.map((style) => {
               const isSelected = values.custom_card_style === style.value;
+              const styleLabel = t(`customizePage.${style.labelKey}`);
               return (
                 <button
                   key={style.value}
@@ -1032,7 +1080,7 @@ export default function AdminCustomizePage() {
                       : "border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40"
                   )}
                   aria-pressed={isSelected}
-                  aria-label={`Style ${style.label}`}
+                  aria-label={t("customizePage.styleLabel", { label: styleLabel })}
                 >
                   <div
                     className="h-10 w-full rounded bg-[var(--bg-card)]"
@@ -1057,10 +1105,10 @@ export default function AdminCustomizePage() {
                       isSelected ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"
                     )}
                   >
-                    {style.label}
+                    {styleLabel}
                   </span>
                   <span className="text-center text-[10px] leading-tight text-[var(--text-muted)]">
-                    {style.description}
+                    {t(`customizePage.${style.descriptionKey}`)}
                   </span>
                 </button>
               );
@@ -1070,7 +1118,9 @@ export default function AdminCustomizePage() {
 
         {/* Shadow level selector */}
         <div className="mb-5">
-          <p className="mb-3 text-sm font-medium text-[var(--text-primary)]">Niveau d&apos;ombre</p>
+          <p className="mb-3 text-sm font-medium text-[var(--text-primary)]">
+            {t("customizePage.cardShadow")}
+          </p>
           <div className="grid grid-cols-4 gap-3">
             {SHADOW_LEVELS.map((level) => {
               const isSelected = values.custom_card_shadow === level.value;
@@ -1082,6 +1132,7 @@ export default function AdminCustomizePage() {
                     : level.value === "medium"
                       ? "0 4px 12px rgba(0,0,0,0.12)"
                       : "0 8px 24px rgba(0,0,0,0.22)";
+              const levelLabel = t(`customizePage.${level.labelKey}`);
               return (
                 <button
                   key={level.value}
@@ -1093,7 +1144,7 @@ export default function AdminCustomizePage() {
                       : "border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40"
                   )}
                   aria-pressed={isSelected}
-                  aria-label={`Ombre ${level.label}`}
+                  aria-label={t("customizePage.shadowLabel", { label: levelLabel })}
                 >
                   <div
                     className="h-8 w-full rounded-[var(--radius-sm)] bg-[var(--bg-card)]"
@@ -1105,7 +1156,7 @@ export default function AdminCustomizePage() {
                       isSelected ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"
                     )}
                   >
-                    {level.label}
+                    {levelLabel}
                   </span>
                 </button>
               );
@@ -1115,13 +1166,14 @@ export default function AdminCustomizePage() {
 
         <div className="max-w-xs">
           <RangeSlider
-            label="Padding des cartes"
+            label={t("customizePage.cardPadding")}
             settingKey="custom_card_padding"
             value={Number(values.custom_card_padding)}
             min={8}
             max={48}
             unit="px"
             onChange={handleChange}
+            t={t}
           />
         </div>
       </div>
@@ -1134,18 +1186,19 @@ export default function AdminCustomizePage() {
           <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)]/10">
             <Eye className="h-5 w-5 text-[var(--accent)]" />
           </div>
-          <h2 className="text-lg font-bold text-[var(--text-primary)]">Aperçu en direct</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">
+            {t("customizePage.livePreviewSection")}
+          </h2>
         </div>
         <p className="mb-5 text-sm text-[var(--text-secondary)]">
-          Aperçu de votre boutique avec les paramètres actuels. Les modifications sont appliquées en
-          temps réel.
+          {t("customizePage.livePreviewDesc")}
         </p>
-        <LivePreviewCard values={values} />
+        <LivePreviewCard values={values} t={t} />
       </div>
 
       {/* ---- Bottom actions (mobile-friendly sticky) ---- */}
       <div className="sticky bottom-0 -mx-2 flex items-center justify-end gap-3 border-t border-[var(--border)] bg-[var(--bg-primary)] pt-4 pb-2 sm:static sm:border-t-0 sm:bg-transparent sm:pt-0 sm:pb-0">
-        <ActionButtons onReset={handleReset} onSave={handleSave} saving={saving} />
+        <ActionButtons onReset={handleReset} onSave={handleSave} saving={saving} t={t} />
       </div>
     </div>
   );

@@ -31,6 +31,18 @@ export default function LanguageSwitcher() {
   useEffect(() => {
     setLocale(getLocaleFromCookie());
   }, []);
+
+  // Re-read locale when cookie changes (language switcher)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentLocale = getLocaleFromCookie();
+      if (currentLocale !== locale) {
+        setLocale(currentLocale);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [locale]);
+
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

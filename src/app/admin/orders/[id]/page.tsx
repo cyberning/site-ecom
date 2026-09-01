@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -48,6 +49,8 @@ interface OrderDetail {
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const t = useTranslations("admin");
+  const locale = useLocale();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -55,10 +58,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [error, setError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
+  // Les labelKey de STATUS_OPTIONS (ex: "status.pending") sont relative au namespace "admin"
+  // de `t`. Le replace est conservé par tolérance si un jour une clé reprenait le préfixe.
+  const statusLabel = (labelKey: string | undefined, fallback: string) =>
+    labelKey ? t(labelKey.replace(/^admin\./, "")) : fallback;
+
   useEffect(() => {
     fetch(`/api/orders/${id}`)
       .then((r) => {
-        if (!r.ok) throw new Error("Commande non trouvée");
+        if (!r.ok) throw new Error(t("orderDetail.notFound"));
         return r.json();
       })
       .then((data) => {
@@ -66,10 +74,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         setLoading(false);
       })
       .catch(() => {
-        setError("Commande non trouvée");
+        setError(t("orderDetail.notFound"));
         setLoading(false);
       });
-  }, [id]);
+  }, [id, t]);
 
   const updateStatus = async (newStatus: string) => {
     setUpdating(true);
@@ -83,7 +91,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Erreur lors de la mise à jour");
+        throw new Error(data.error || t("orderDetail.updateError"));
       }
 
       // Mettre à jour le state localement
@@ -107,7 +115,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       });
       setNote("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur inconnue");
+      setError(e instanceof Error ? e.message : t("orderDetail.unknownError"));
     } finally {
       setUpdating(false);
     }
@@ -124,13 +132,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   if (!order) {
     return (
       <div className="py-16 text-center text-[var(--text-muted)]">
-        {error || "Commande non trouvée"}
+        {error || t("orderDetail.notFound")}
       </div>
     );
   }
 
-  const currentStatusLabel =
-    STATUS_OPTIONS.find((s) => s.value === order.status)?.label || order.status;
+  const currentStatusOption = STATUS_OPTIONS.find((s) => s.value === order.status);
+  const currentStatusLabel = statusLabel(currentStatusOption?.labelKey, order.status);
 
   return (
     <div className="space-y-6">
@@ -141,10 +149,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             onClick={() => router.back()}
             className="mb-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent)]"
           >
-            &larr; Retour
+            {t("orderDetail.back")}
           </button>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            Commande {order.trackingId}
+            {t("orderDetail.orderTitle", { trackingId: order.trackingId })}
           </h1>
         </div>
         <Badge variant={STATUS_BADGE_VARIANT[order.status] || "default"} className="text-sm">
@@ -157,13 +165,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Infos client */}
         <Card className="p-6 lg:col-span-1">
-          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Client</h3>
+          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">
+            {t("orderDetail.customerLabel")}
+          </h3>
           <div className="space-y-2 text-sm">
             <p>
-              <span className="text-[var(--text-muted)]">Nom :</span> {order.customerName}
+              <span className="text-[var(--text-muted)]">{t("orderDetail.name")} :</span>{" "}
+              {order.customerName}
             </p>
             <p>
-              <span className="text-[var(--text-muted)]">Tél :</span>{" "}
+              <span className="text-[var(--text-muted)]">{t("orderDetail.phone")} :</span>{" "}
               <a
                 href={`tel:${order.customerPhone.replace(/\s/g, "")}`}
                 className="text-[var(--accent)] transition-all duration-300 hover:underline"
@@ -172,33 +183,39 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               </a>
             </p>
             <p>
-              <span className="text-[var(--text-muted)]">Wilaya :</span> {order.wilayaCode}
+              <span className="text-[var(--text-muted)]">{t("orderDetail.wilayaLabel")} :</span>{" "}
+              {order.wilayaCode}
             </p>
             <p>
-              <span className="text-[var(--text-muted)]">Commune :</span> {order.communeCode}
+              <span className="text-[var(--text-muted)]">{t("orderDetail.commune")} :</span>{" "}
+              {order.communeCode}
             </p>
             <p>
-              <span className="text-[var(--text-muted)]">Adresse :</span> {order.fullAddress}
+              <span className="text-[var(--text-muted)]">{t("orderDetail.address")} :</span>{" "}
+              {order.fullAddress}
             </p>
             <p>
-              <span className="text-[var(--text-muted)]">Livraison :</span>{" "}
-              {order.deliveryMode === "HOME" ? "Domicile" : "Stop Desk"}
+              <span className="text-[var(--text-muted)]">{t("orderDetail.deliveryLabel")} :</span>{" "}
+              {order.deliveryMode === "HOME" ? t("orderDetail.home") : t("orderDetail.stopDesk")}
             </p>
             <p>
-              <span className="text-[var(--text-muted)]">Date :</span> {formatDate(order.createdAt)}
+              <span className="text-[var(--text-muted)]">{t("orderDetail.dateLabel")} :</span>{" "}
+              {formatDate(order.createdAt, locale)}
             </p>
           </div>
         </Card>
 
         {/* Changement de statut */}
         <Card className="p-6 lg:col-span-1">
-          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Changer le statut</h3>
+          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">
+            {t("orderDetail.changeStatus")}
+          </h3>
           <div className="space-y-3">
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Note (optionnel)..."
-              aria-label="Note associée au changement de statut"
+              placeholder={t("orderDetail.notePlaceholder")}
+              aria-label={t("orderDetail.noteAria")}
               className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
               rows={3}
             />
@@ -217,7 +234,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   }}
                   disabled={updating}
                 >
-                  {opt.label}
+                  {statusLabel(opt.labelKey, opt.value)}
                 </Button>
               ))}
             </div>
@@ -226,7 +243,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Résumé commande */}
         <Card className="p-6 lg:col-span-1">
-          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Résumé</h3>
+          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">
+            {t("orderDetail.summary")}
+          </h3>
           <div className="space-y-2 text-sm">
             {order.items.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-3">
@@ -250,15 +269,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             ))}
             <div className="border-t border-[var(--border)] pt-2">
               <div className="flex justify-between">
-                <span className="text-[var(--text-secondary)]">Sous-total</span>
+                <span className="text-[var(--text-secondary)]">{t("orderDetail.subtotal")}</span>
                 <span>{formatPrice(Number(order.total) - Number(order.deliveryFee))}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--text-secondary)]">Livraison</span>
+                <span className="text-[var(--text-secondary)]">
+                  {t("orderDetail.deliveryLabel")}
+                </span>
                 <span>{formatPrice(Number(order.deliveryFee))}</span>
               </div>
               <div className="flex justify-between font-bold">
-                <span>Total</span>
+                <span>{t("orderDetail.total")}</span>
                 <span className="text-[var(--accent)]">{formatPrice(Number(order.total))}</span>
               </div>
             </div>
@@ -269,10 +290,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       {/* Historique */}
       {order.statusHistory.length > 0 && (
         <Card className="p-6">
-          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Historique</h3>
+          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">
+            {t("orderDetail.history")}
+          </h3>
           <div className="space-y-3">
             {order.statusHistory.map((h) => {
-              const label = STATUS_OPTIONS.find((s) => s.value === h.toStatus)?.label || h.toStatus;
+              const label = statusLabel(
+                STATUS_OPTIONS.find((s) => s.value === h.toStatus)?.labelKey,
+                h.toStatus
+              );
               return (
                 <div
                   key={h.id}
@@ -282,11 +308,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-[var(--text-muted)]">
-                        {formatDate(h.createdAt)}
+                        {formatDate(h.createdAt, locale)}
                       </span>
                       {h.changedBy && (
                         <span className="text-xs text-[var(--text-muted)]">
-                          par {h.changedBy.name || h.changedBy.email}
+                          {t("orderDetail.by", { name: h.changedBy.name || h.changedBy.email })}
                         </span>
                       )}
                     </div>
@@ -303,14 +329,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       <Modal
         isOpen={confirmCancel}
         onClose={() => setConfirmCancel(false)}
-        title="Annuler la commande"
+        title={t("orderDetail.cancelOrder")}
       >
         <p className="mb-6 text-[var(--text-secondary)]">
-          Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.
+          {t("orderDetail.cancelConfirm")} {t("orderDetail.cancelIrreversible")}
         </p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setConfirmCancel(false)}>
-            Retour
+            {t("orderDetail.back2")}
           </Button>
           <Button
             variant="danger"
@@ -320,7 +346,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               updateStatus("CANCELLED");
             }}
           >
-            {updating ? "Annulation..." : "Confirmer l'annulation"}
+            {updating ? t("orderDetail.cancelling") : t("orderDetail.confirmCancellation")}
           </Button>
         </div>
       </Modal>

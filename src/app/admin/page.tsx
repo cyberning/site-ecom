@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useTranslations, useLocale } from "next-intl";
 import { useSession } from "@/hooks/useSession";
 import { cn, formatPrice } from "@/lib/utils";
-import { STATUS_COLORS, STATUS_LABELS } from "@/lib/orderStatus";
+import { STATUS_COLORS, getStatusLabel, type OrderStatus } from "@/lib/orderStatus";
 import { formatDate } from "@/lib/format";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -97,6 +98,8 @@ function TableSkeleton() {
 
 export default function AdminDashboard() {
   const { session } = useSession();
+  const t = useTranslations("admin");
+  const locale = useLocale();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,15 +109,15 @@ export default function AdminDashboard() {
       setLoading(true);
       setError(null);
       const res = await fetch("/api/admin/stats");
-      if (!res.ok) throw new Error("Erreur lors du chargement des statistiques");
+      if (!res.ok) throw new Error(t("dashboardPage.loadError"));
       const data = await res.json();
       setStats(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+      setError(err instanceof Error ? err.message : t("dashboardPage.unknownError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchStats();
@@ -124,28 +127,28 @@ export default function AdminDashboard() {
   const statCards = stats
     ? [
         {
-          label: "Total Commandes",
-          value: stats.totalOrders.toLocaleString("fr-FR"),
+          label: t("dashboardPage.totalOrders"),
+          value: stats.totalOrders.toLocaleString(locale),
           icon: ShoppingCart,
           color: "text-blue-500",
           bgColor: "bg-blue-500/10",
         },
         {
-          label: "En attente",
-          value: stats.pendingOrders.toLocaleString("fr-FR"),
+          label: t("dashboardPage.pending"),
+          value: stats.pendingOrders.toLocaleString(locale),
           icon: Clock,
           color: "text-yellow-500",
           bgColor: "bg-yellow-500/10",
         },
         {
-          label: "Chiffre d'affaires",
+          label: t("dashboardPage.revenue"),
           value: formatPrice(stats.totalRevenue),
           icon: TrendingUp,
           color: "text-green-500",
           bgColor: "bg-green-500/10",
         },
         {
-          label: "Produits actifs",
+          label: t("dashboardPage.activeProducts"),
           value: `${stats.activeProducts} / ${stats.totalProducts}`,
           icon: Package,
           color: "text-purple-500",
@@ -163,9 +166,11 @@ export default function AdminDashboard() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-[var(--text-primary)] md:text-2xl">
-            Bonjour, {session?.user?.name || "Admin"}
+            {t("dashboardPage.greeting", {
+              name: session?.user?.name || t("dashboardPage.greetingFallback"),
+            })}
           </h2>
-          <p className="text-sm text-[var(--text-secondary)]">Voici un résumé de votre boutique</p>
+          <p className="text-sm text-[var(--text-secondary)]">{t("dashboardPage.summary")}</p>
         </div>
       </div>
 
@@ -222,14 +227,14 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5 text-[var(--accent)]" />
               <h3 className="text-base font-semibold text-[var(--text-primary)]">
-                Commandes récentes
+                {t("dashboardPage.recentOrders")}
               </h3>
             </div>
             <Link
               href="/admin/orders"
               className="flex items-center gap-1 text-sm text-[var(--accent)] transition-all duration-300 hover:underline"
             >
-              Voir tout
+              {t("dashboardPage.viewAll")}
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -239,11 +244,21 @@ export default function AdminDashboard() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)] text-[var(--text-muted)]">
-                    <th className="px-6 py-3 font-medium whitespace-nowrap">Tracking ID</th>
-                    <th className="px-6 py-3 font-medium whitespace-nowrap">Client</th>
-                    <th className="px-6 py-3 font-medium whitespace-nowrap">Montant</th>
-                    <th className="px-6 py-3 font-medium whitespace-nowrap">Statut</th>
-                    <th className="px-6 py-3 font-medium whitespace-nowrap">Date</th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      {t("dashboardPage.trackingId")}
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      {t("dashboardPage.customer")}
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      {t("dashboardPage.amount")}
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      {t("dashboardPage.status")}
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      {t("dashboardPage.date")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -281,11 +296,11 @@ export default function AdminDashboard() {
                               sc.text
                             )}
                           >
-                            {STATUS_LABELS[order.status] ?? order.status}
+                            {getStatusLabel(order.status as OrderStatus, t)}
                           </span>
                         </td>
                         <td className="px-6 py-3.5 whitespace-nowrap text-[var(--text-muted)]">
-                          {formatDate(order.createdAt)}
+                          {formatDate(order.createdAt, locale)}
                         </td>
                       </tr>
                     );
@@ -295,7 +310,7 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div className="px-6 py-12 text-center text-sm text-[var(--text-muted)]">
-              Aucune commande récente
+              {t("dashboardPage.noRecentOrders")}
             </div>
           )}
         </div>

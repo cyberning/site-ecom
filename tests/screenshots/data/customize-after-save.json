@@ -1,0 +1,219 @@
+[
+  {
+    "key": "custom_store_name",
+    "value": "Boutique Test DZ",
+    "type": "string",
+    "category": "customize",
+    "description": "Nom du magasin"
+  },
+  {
+    "key": "custom_store_tagline",
+    "value": "Slogan du magasin",
+    "type": "string",
+    "category": "customize",
+    "description": "Slogan du magasin"
+  },
+  {
+    "key": "custom_footer_text",
+    "value": "salam",
+    "type": "string",
+    "category": "customize",
+    "description": "Texte du pied de page"
+  },
+  {
+    "key": "custom_contact_email",
+    "value": "Email de contact",
+    "type": "string",
+    "category": "customize",
+    "description": "Email de contact"
+  },
+  {
+    "key": "custom_contact_phone",
+    "value": "Numéro de téléphone",
+    "type": "string",
+    "category": "customize",
+    "description": "Numéro de téléphone"
+  },
+  {
+    "key": "custom_contact_address",
+    "value": "Adresse",
+    "type": "string",
+    "category": "customize",
+    "description": "Adresse"
+  },
+  {
+    "key": "custom_hero_image",
+    "value": "/uploads/hero/1787958984230-f59714f5b3ac.png",
+    "type": "string",
+    "category": "customize",
+    "description": "URL de l'image de bannière hero"
+  },
+  {
+    "key": "custom_hero_title",
+    "value": "salame ",
+    "type": "string",
+    "category": "customize",
+    "description": "Titre de la bannière hero"
+  },
+  {
+    "key": "custom_accent_color",
+    "value": "#FF5733",
+    "type": "string",
+    "category": "customize",
+    "description": "Couleur d'accentuation (hex)"
+  },
+  {
+    "key": "custom_bg_primary",
+    "value": "#1A1A2E",
+    "type": "string",
+    "category": "customize",
+    "description": "Couleur de fond principale (hex)"
+  },
+  {
+    "key": "custom_bg_secondary",
+    "value": "#d1d9e6",
+    "type": "string",
+    "category": "customize",
+    "description": "Couleur de fond secondaire (hex)"
+  },
+  {
+    "key": "custom_bg_card",
+    "value": "#e0e5ec",
+    "type": "string",
+    "category": "customize",
+    "description": "Couleur de fond des cartes (hex)"
+  },
+  {
+    "key": "custom_text_primary",
+    "value": "#000000",
+    "type": "string",
+    "category": "customize",
+    "description": "Couleur du texte principal (hex)"
+  },
+  {
+    "key": "custom_text_secondary",
+    "value": "#000000",
+    "type": "string",
+    "category": "customize",
+    "description": "Couleur du texte secondaire (hex)"
+  },
+  {
+    "key": "custom_border_color",
+    "value": "#CBD5E0",
+    "type": "string",
+    "category": "customize",
+    "description": "Couleur des bordures (hex)"
+  },
+  {
+    "key": "custom_font_primary",
+    "value": "Playfair Display, sans-serif",
+    "type": "string",
+    "category": "customize",
+    "description": "Police de caractères principale"
+  },
+  {
+    "key": "custom_font_heading",
+    "value": "Playfair Display, sans-serif",
+    "type": "string",
+    "category": "customize",
+    "description": "Police de caractères pour les titres"
+  },
+  {
+    "key": "custom_font_size_base",
+    "value": 20,
+    "type": "number",
+    "category": "customize",
+    "description": "Taille de police de base (px)"
+  },
+  {
+    "key": "custom_font_size_heading",
+    "value": 24,
+    "type": "number",
+    "category": "customize",
+    "description": "Taille de police des titres (px)"
+  },
+  {
+    "key": "custom_border_radius_sm",
+    "value": 8,
+    "type": "number",
+    "category": "customize",
+    "description": "Rayon de bordure petit (px)"
+  },
+  {
+    "key": "custom_border_radius_md",
+    "value": 24,
+    "type": "number",
+    "category": "customize",
+    "description": "Rayon de bordure moyen (px)"
+  },
+  {
+    "key": "custom_border_radius_lg",
+    "value": 16,
+    "type": "number",
+    "category": "customize",
+    "description": "Rayon de bordure grand (px)"
+  },
+  {
+    "key": "custom_border_radius_xl",
+    "value": 6,
+    "type": "number",
+    "category": "customize",
+    "description": "Rayon de bordure très grand (px)"
+  },
+  {
+    "key": "custom_spacing_unit",
+    "value": 4,
+    "type": "number",
+    "category": "customize",
+    "description": "Unité d'espacement (px)"
+  },
+  {
+    "key": "custom_btn_style",
+    "value": "pill",
+    "type": "string",
+    "category": "customize",
+    "description": "Style des boutons (rounded | square | pill)"
+  },
+  {
+    "key": "custom_btn_padding_x",
+    "value": 12,
+    "type": "number",
+    "category": "customize",
+    "description": "Padding horizontal des boutons (px)"
+  },
+  {
+    "key": "custom_btn_padding_y",
+    "value": 9,
+    "type": "number",
+    "category": "customize",
+    "description": "Padding vertical des boutons (px)"
+  },
+  {
+    "key": "custom_btn_font_weight",
+    "value": "bold",
+    "type": "string",
+    "category": "customize",
+    "description": "Épaisseur de la police des boutons (normal | medium | bold)"
+  },
+  {
+    "key": "custom_card_style",
+    "value": "elevated",
+    "type": "string",
+    "category": "customize",
+    "description": "Style des cartes (neumorphic | flat | bordered | elevated)"
+  },
+  {
+    "key": "custom_card_shadow",
+    "value": "medium",
+    "type": "string",
+    "category": "customize",
+    "description": "Ombre des cartes (none | light | medium | strong)"
+  },
+  {
+    "key": "custom_card_padding",
+    "value": 24,
+    "type": "number",
+    "category": "customize",
+    "description": "Padding des cartes (px)"
+  }
+]

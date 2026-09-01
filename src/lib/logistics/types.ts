@@ -10,6 +10,8 @@ export interface ShipmentRequest {
   address: string;
   wilayaCode: string;
   communeCode: string;
+  /** Nom de la commune (certains providers, ex. dzship, attendent un nom et non un code). */
+  communeName?: string;
   deliveryMode: "HOME" | "STOP_DESK";
   totalAmount: number;
   items: { name: string; quantity: number; price: number }[];

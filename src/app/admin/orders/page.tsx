@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -12,7 +13,12 @@ import Alert from "@/components/ui/Alert";
 import Pagination from "@/components/ui/Pagination";
 import { formatPrice } from "@/lib/utils";
 import { formatDate } from "@/lib/format";
-import { STATUS_LABELS, STATUS_BADGE_VARIANT } from "@/lib/orderStatus";
+import {
+  STATUS_LABELS,
+  STATUS_BADGE_VARIANT,
+  getStatusLabel,
+  type OrderStatus,
+} from "@/lib/orderStatus";
 
 interface OrderItem {
   id: string;
@@ -45,6 +51,10 @@ export default function OrdersPage() {
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
   const requestIdRef = useRef(0);
 
+  const t = useTranslations("admin");
+  const locale = useLocale();
+  const statusLabel = (s: string) => getStatusLabel(s as OrderStatus, t);
+
   // Debounce de la recherche : le fetch ne se déclenche qu'après 300ms d'inactivité.
   // On remet aussi la page à 1 dans le même tick pour éviter de requêter
   // une page qui n'existe plus avec le nouveau terme (et le double fetch).
@@ -66,7 +76,7 @@ export default function OrdersPage() {
       if (debouncedSearch) params.set("search", debouncedSearch);
 
       const res = await fetch(`/api/orders?${params}`);
-      if (!res.ok) throw new Error("Erreur lors du chargement");
+      if (!res.ok) throw new Error(t("ordersPage.loadError"));
 
       const data = await res.json();
       // Ignorer les réponses obsolètes (une requête plus récente est en cours)
@@ -76,7 +86,7 @@ export default function OrdersPage() {
     } catch {
       if (requestId !== requestIdRef.current) return;
       setOrders([]);
-      setError("Erreur lors du chargement des commandes");
+      setError(t("ordersPage.loadError"));
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }
@@ -98,9 +108,9 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Commandes</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("ordersPage.title")}</h1>
           <p className="text-sm text-[var(--text-muted)]">
-            {pagination.total} commande(s) au total
+            {t("ordersPage.total", { count: pagination.total })}
           </p>
         </div>
       </div>
@@ -112,12 +122,12 @@ export default function OrdersPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher par tracking, nom, téléphone..."
-              aria-label="Rechercher une commande"
+              placeholder={t("ordersPage.searchPlaceholder")}
+              aria-label={t("ordersPage.searchAria")}
               className="flex-1"
             />
             <Button type="submit" size="sm">
-              Rechercher
+              {t("ordersPage.search")}
             </Button>
           </form>
           <Select
@@ -126,13 +136,13 @@ export default function OrdersPage() {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            aria-label="Filtrer les commandes par statut"
+            aria-label={t("ordersPage.filterStatusAria")}
             className="w-full sm:w-56"
             options={[
-              { value: "ALL", label: "Tous les statuts" },
-              ...Object.entries(STATUS_LABELS).map(([key, label]) => ({
+              { value: "ALL", label: t("ordersPage.allStatuses") },
+              ...Object.entries(STATUS_LABELS).map(([key]) => ({
                 value: key,
-                label,
+                label: statusLabel(key),
               })),
             ]}
           />
@@ -149,30 +159,34 @@ export default function OrdersPage() {
             <Spinner size="lg" />
           </div>
         ) : orders.length === 0 ? (
-          <div className="py-16 text-center text-[var(--text-muted)]">Aucune commande trouvée</div>
+          <div className="py-16 text-center text-[var(--text-muted)]">
+            {t("ordersPage.noOrders")}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b border-[var(--border)]">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
-                    Tracking
+                    {t("ordersPage.tracking")}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
-                    Client
+                    {t("ordersPage.customer")}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
-                    Wilaya
+                    {t("ordersPage.wilaya")}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
-                    Total
+                    {t("ordersPage.totalCol")}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
-                    Statut
+                    {t("ordersPage.status")}
                   </th>
-                  <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">Date</th>
                   <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
-                    Action
+                    {t("ordersPage.date")}
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
+                    {t("ordersPage.action")}
                   </th>
                 </tr>
               </thead>
@@ -192,16 +206,16 @@ export default function OrdersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={STATUS_BADGE_VARIANT[order.status] || "default"}>
-                        {STATUS_LABELS[order.status] || order.status}
+                        {statusLabel(order.status)}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
-                      {formatDate(order.createdAt)}
+                      {formatDate(order.createdAt, locale)}
                     </td>
                     <td className="px-4 py-3">
                       <Link href={`/admin/orders/${order.id}`}>
                         <Button variant="ghost" size="sm">
-                          Voir
+                          {t("ordersPage.view")}
                         </Button>
                       </Link>
                     </td>

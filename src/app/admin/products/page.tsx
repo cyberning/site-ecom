@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -41,6 +42,7 @@ interface Pagination {
 }
 
 export default function AdminProductsPage() {
+  const t = useTranslations("admin");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -81,7 +83,7 @@ export default function AdminProductsPage() {
       if (activeFilter) params.set("active", activeFilter);
 
       const res = await fetch(`/api/products?${params}`);
-      if (!res.ok) throw new Error("Erreur serveur");
+      if (!res.ok) throw new Error(t("productsPage.serverError"));
       const data = await res.json();
 
       // Ignorer les réponses obsolètes (une requête plus récente est en cours)
@@ -113,7 +115,7 @@ export default function AdminProductsPage() {
       setDeleteId(null);
     } catch (error) {
       console.error("Erreur suppression:", error);
-      setDeleteError("Impossible de supprimer ce produit. Veuillez réessayer.");
+      setDeleteError(t("productsPage.deleteError"));
     } finally {
       setDeleting(false);
     }
@@ -124,13 +126,15 @@ export default function AdminProductsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)]">Produits</h2>
+          <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+            {t("productsPage.title")}
+          </h2>
           <p className="text-sm text-[var(--text-secondary)]">
-            {pagination.total} produit{pagination.total > 1 ? "s" : ""}
+            {t("productsPage.total", { count: pagination.total })}
           </p>
         </div>
         <Link href="/admin/products/new">
-          <Button>+ Nouveau produit</Button>
+          <Button>+ {t("productsPage.newProduct")}</Button>
         </Link>
       </div>
 
@@ -138,8 +142,8 @@ export default function AdminProductsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1">
           <Input
-            placeholder="Rechercher un produit..."
-            aria-label="Rechercher un produit"
+            placeholder={t("productsPage.searchPlaceholder")}
+            aria-label={t("productsPage.searchAria")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -152,9 +156,9 @@ export default function AdminProductsPage() {
               setPage(1);
             }}
             options={[
-              { value: "", label: "Tous les statuts" },
-              { value: "true", label: "Actifs" },
-              { value: "false", label: "Inactifs" },
+              { value: "", label: t("productsPage.allStatuses") },
+              { value: "true", label: t("productsPage.active") },
+              { value: "false", label: t("productsPage.inactive") },
             ]}
           />
         </div>
@@ -168,20 +172,20 @@ export default function AdminProductsPage() {
           </div>
         ) : products.length === 0 ? (
           <div className="p-12 text-center text-[var(--text-muted)]">
-            {search ? "Aucun produit ne correspond à votre recherche" : "Aucun produit trouvé"}
+            {search ? t("productsPage.noResults") : t("productsPage.noProducts")}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--border)] text-left text-sm text-[var(--text-secondary)]">
-                  <th className="p-4">Image</th>
-                  <th className="p-4">Nom</th>
-                  <th className="p-4">Prix</th>
-                  <th className="hidden p-4 md:table-cell">Catégorie</th>
-                  <th className="hidden p-4 lg:table-cell">Variants</th>
-                  <th className="p-4">Statut</th>
-                  <th className="p-4 text-right">Actions</th>
+                  <th className="p-4">{t("productsPage.image")}</th>
+                  <th className="p-4">{t("productsPage.name")}</th>
+                  <th className="p-4">{t("productsPage.price")}</th>
+                  <th className="hidden p-4 md:table-cell">{t("productsPage.category")}</th>
+                  <th className="hidden p-4 lg:table-cell">{t("productsPage.variants")}</th>
+                  <th className="p-4">{t("productsPage.statusCol")}</th>
+                  <th className="p-4 text-right">{t("productsPage.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,23 +224,26 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="hidden p-4 lg:table-cell">
                       <span className="text-sm text-[var(--text-secondary)]">
-                        {product.variants.length} variante
-                        {product.variants.length > 1 ? "s" : ""}
+                        {t("productsPage.variantCount", { count: product.variants.length })}
                       </span>
                     </td>
                     <td className="p-4">
                       <div className="flex flex-wrap items-center gap-1">
                         <Badge variant={product.isActive ? "success" : "danger"}>
-                          {product.isActive ? "Actif" : "Inactif"}
+                          {product.isActive
+                            ? t("productsPage.activeBadge")
+                            : t("productsPage.inactiveBadge")}
                         </Badge>
-                        {product.isFeatured && <Badge variant="info">Vedette</Badge>}
+                        {product.isFeatured && (
+                          <Badge variant="info">{t("productsPage.featured")}</Badge>
+                        )}
                       </div>
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link href={`/admin/products/${product.id}`}>
                           <Button variant="ghost" size="sm">
-                            Modifier
+                            {t("productsPage.edit")}
                           </Button>
                         </Link>
                         <Button
@@ -245,7 +252,7 @@ export default function AdminProductsPage() {
                           className="text-red-500 hover:bg-red-500/10 hover:text-red-600"
                           onClick={() => setDeleteId(product.id)}
                         >
-                          Supprimer
+                          {t("productsPage.delete")}
                         </Button>
                       </div>
                     </td>
@@ -261,17 +268,21 @@ export default function AdminProductsPage() {
       <Pagination page={page} pages={pagination.pages} onPageChange={setPage} />
 
       {/* Delete confirmation modal */}
-      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Supprimer le produit">
+      <Modal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title={t("productsPage.deleteTitle")}
+      >
         <p className="mb-6 text-[var(--text-secondary)]">
-          Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible.
+          {t("productsPage.deleteConfirm")} {t("productsPage.deleteIrreversible")}
         </p>
         {deleteError && <Alert type="error" message={deleteError} className="mb-4" />}
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setDeleteId(null)}>
-            Annuler
+            {t("productsPage.cancel")}
           </Button>
           <Button variant="danger" onClick={handleDelete} disabled={deleting}>
-            {deleting ? "Suppression..." : "Supprimer"}
+            {deleting ? t("productsPage.deleting") : t("productsPage.delete")}
           </Button>
         </div>
       </Modal>

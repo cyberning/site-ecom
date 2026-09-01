@@ -1,5 +1,6 @@
 import { LogisticProvider, ShipmentRequest } from "./types";
 import { EcotrackProvider } from "./providers/ecotrack";
+import { DzshipProvider } from "./providers/dzship";
 
 const providers = new Map<string, LogisticProvider>();
 
@@ -33,6 +34,24 @@ export function trackShipment(providerCode: string, trackingId: string) {
 
 export function cancelShipment(providerCode: string, trackingId: string) {
   return getProvider(providerCode).cancelShipment(trackingId);
+}
+
+/**
+ * Crée un colis via dzship pour un transporteur configuré dynamiquement
+ * (une instance = une connexion transporteur, credentials envoyés à chaque appel).
+ */
+export function createShipmentForCourier(
+  courier: string,
+  credentials: Record<string, string>,
+  request: ShipmentRequest,
+  options?: { baseUrl?: string }
+) {
+  const provider = new DzshipProvider({
+    courier,
+    credentials,
+    baseUrl: options?.baseUrl,
+  });
+  return provider.createShipment(request);
 }
 
 export type {

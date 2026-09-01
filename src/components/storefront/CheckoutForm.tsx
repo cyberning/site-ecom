@@ -33,7 +33,12 @@ export default function CheckoutForm({ productName, variants, basePrice }: Check
   // Hooks
   const { wilayas, communes, selectedWilaya, setSelectedWilaya, loadingCommunes } = useWilaya();
   const [selectedCommune, setSelectedCommune] = useState("");
-  const { fee: deliveryFee, loading: deliveryLoading } = useDelivery(selectedWilaya, deliveryMode);
+  const communeName = communes.find((c) => c.code === selectedCommune)?.name;
+  const { fee: deliveryFee, loading: deliveryLoading } = useDelivery(
+    selectedWilaya,
+    deliveryMode,
+    communeName
+  );
 
   // Calculs
   const activeVariant = variants.find((v) => v.id === selectedVariant);

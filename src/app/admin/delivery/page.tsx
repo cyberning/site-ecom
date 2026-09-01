@@ -1,184 +1,295 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
+import {
+  Truck,
+  Plug,
+  PlugZap,
+  Search,
+  Trash2,
+  Pencil,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Link2,
+  Unplug,
+} from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Spinner from "@/components/ui/Spinner";
 import Alert from "@/components/ui/Alert";
-import ToggleSwitch from "@/components/ui/ToggleSwitch";
-import { cn } from "@/lib/utils";
+import Modal from "@/components/ui/Modal";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface MatrixRow {
-  id: string;
-  wilayaCode: string;
-  wilayaName: string;
-  homeFee: number;
-  stopDeskFee: number;
-  estimatedDays: number;
+interface Courier {
+  key: string;
+  name: string;
+  platform: string;
+  requiredCredentials: string[];
+  capabilities: {
+    createShipment: boolean;
+    cancelShipment: boolean;
+    track: boolean;
+    rates: boolean;
+    [key: string]: boolean;
+  };
+  endpoint?: string;
+  requiresBaseUrl?: boolean;
+  baseUrlSuffixes?: string[];
+  aliases?: string[];
+}
+
+interface Connection {
+  code: string;
+  name: string;
+  platform: string;
+  credentials: Record<string, string>; // valeurs TOUJOURS masquées "••••••••"
+  baseUrl?: string;
+  fromWilaya?: number;
   isActive: boolean;
-  wilaya: { code: string; name: string; nameAr: string };
+  createdAt: string;
+}
+
+interface ProvidersResponse {
+  couriers: Courier[];
+  connections: Connection[];
+  couriersError?: string;
+}
+
+interface ModalState {
+  open: boolean;
+  courier: Courier | null;
+  existing: Connection | null; // non-null en mode modification
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+const MASK = "••••••••";
+
+/** Normalise une chaîne pour la recherche (minuscules, sans accents). */
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
-export default function DeliveryMatrixPage() {
-  const [matrix, setMatrix] = useState<MatrixRow[]>([]);
+export default function DeliveryConnectionPage() {
+  const t = useTranslations("admin");
+
+  const [couriers, setCouriers] = useState<Courier[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [couriersError, setCouriersError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState("");
-  const [edited, setEdited] = useState<Record<string, Partial<MatrixRow>>>({});
-  const [bulkHomeFee, setBulkHomeFee] = useState("");
-  const [bulkStopDeskFee, setBulkStopDeskFee] = useState("");
-  const [bulkDays, setBulkDays] = useState("");
-  const [message, setMessage] = useState<{ type: "success" | "error"; message: string } | null>(
-    null
-  );
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  /* --- Chargement initial --- */
-  useEffect(() => {
-    fetchMatrix();
-  }, []);
+  const [search, setSearch] = useState("");
 
-  const fetchMatrix = async () => {
+  // Modal de connexion
+  const [modal, setModal] = useState<ModalState>({ open: false, courier: null, existing: null });
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [baseUrl, setBaseUrl] = useState("");
+  const [fromWilaya, setFromWilaya] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  // Erreur de validation du formulaire (credentials requis manquants)
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Modal de déconnexion
+  const [disconnectCode, setDisconnectCode] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  // Message flash global
+  const [message, setMessage] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+
+  /* --- Chargement initial --- */
+  const fetchProviders = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch("/api/delivery/matrix");
-      if (res.ok) {
-        setMatrix(await res.json());
-      } else {
-        setLoadError("Erreur lors du chargement de la matrice de livraison");
+      const res = await fetch("/api/delivery/providers");
+      if (!res.ok) {
+        setLoadError(t("deliveryPage.loadError"));
+        return;
       }
-    } catch (err) {
-      console.error("Erreur chargement matrice:", err);
-      setLoadError("Erreur réseau lors du chargement de la matrice de livraison");
+      const data: ProvidersResponse = await res.json();
+      setCouriers(data.couriers || []);
+      setConnections(data.connections || []);
+      setCouriersError(data.couriersError ?? null);
+    } catch {
+      setLoadError(t("deliveryPage.networkError"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  /* --- Filtrage par recherche --- */
-  const filtered = useMemo(() => {
-    if (!search) return matrix;
-    const q = search.toLowerCase();
-    return matrix.filter(
-      (r) =>
-        r.wilayaCode.includes(q) ||
-        r.wilaya.name.toLowerCase().includes(q) ||
-        r.wilaya.nameAr.includes(q)
-    );
-  }, [matrix, search]);
+  useEffect(() => {
+    fetchProviders();
+  }, [fetchProviders]);
 
-  const editedCount = Object.keys(edited).length;
+  /* --- Recherche de transporteurs disponibles --- */
+  const filteredCouriers = useMemo(() => {
+    if (!search) return couriers;
+    const q = normalize(search);
+    return couriers.filter((c) => {
+      const haystack = normalize([c.name, c.platform, c.key, ...(c.aliases ?? [])].join(" "));
+      return haystack.includes(q);
+    });
+  }, [couriers, search]);
 
-  /* --- Helpers --- */
-  const updateField = (code: string, field: keyof MatrixRow, value: unknown) => {
-    setEdited((prev) => ({
-      ...prev,
-      [code]: { ...prev[code], [field]: value },
-    }));
-  };
-
-  const getFieldValue = <K extends keyof MatrixRow>(row: MatrixRow, field: K): MatrixRow[K] => {
-    const patch = edited[row.wilayaCode];
-    if (patch && field in patch) {
-      return patch[field] as MatrixRow[K];
+  /* --- Groupement par plateforme --- */
+  const groupedByPlatform = useMemo(() => {
+    const groups = new Map<string, Courier[]>();
+    for (const c of filteredCouriers) {
+      const key = c.platform || "—";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(c);
     }
-    return row[field];
+    return Array.from(groups.entries());
+  }, [filteredCouriers]);
+
+  const connectedCodes = useMemo(() => new Set(connections.map((c) => c.code)), [connections]);
+
+  /* --- Ouverture du modal (connexion nouvelle ou modification) --- */
+  const openConnectModal = (courier: Courier, existing: Connection | null) => {
+    // En mode modification, les credentials sont masqués côté API : on exige la
+    // ressaisie complète pour tester ou mettre à jour (voir reenterCredentials).
+    const initial: Record<string, string> = {};
+    for (const key of courier.requiredCredentials) initial[key] = "";
+    setForm(initial);
+    setBaseUrl(existing?.baseUrl ?? "");
+    setFromWilaya(existing?.fromWilaya != null ? String(existing.fromWilaya) : "");
+    setTestResult(null);
+    setFormError(null);
+    setModal({ open: true, courier, existing });
   };
 
-  const hasChanges = (code: string): boolean => {
-    const patch = edited[code];
-    if (!patch) return false;
-    // Vérifier qu'au moins une valeur diffère de la ligne originale
-    const original = matrix.find((r) => r.wilayaCode === code);
-    if (!original) return false;
-    return Object.entries(patch).some(([k, v]) => {
-      if (v === undefined) return false;
-      const origVal = (original as unknown as Record<string, unknown>)[k];
-      return origVal !== v;
-    });
+  const closeModal = () => {
+    setModal({ open: false, courier: null, existing: null });
+    setTestResult(null);
+    setFormError(null);
   };
 
-  /* --- Application en masse --- */
-  const handleBulkApply = () => {
-    if (!editedCount) return;
-
-    const updates: Record<string, unknown> = {};
-    if (bulkHomeFee) updates.homeFee = parseFloat(bulkHomeFee);
-    if (bulkStopDeskFee) updates.stopDeskFee = parseFloat(bulkStopDeskFee);
-    if (bulkDays) updates.estimatedDays = parseInt(bulkDays, 10);
-
-    if (Object.keys(updates).length === 0) return;
-
-    setEdited((prev) => {
-      const next = { ...prev };
-      for (const code of Object.keys(next)) {
-        next[code] = { ...next[code], ...updates };
-      }
-      return next;
-    });
-  };
-
-  /* --- Sauvegarde --- */
-  const handleSave = async () => {
-    setSaving(true);
-    setMessage(null);
+  /* --- Test de connexion (POST /test, ne sauvegarde rien) --- */
+  const handleTest = async () => {
+    if (!modal.courier) return;
+    setTesting(true);
+    setTestResult(null);
+    setFormError(null);
     try {
-      const updates = Object.entries(edited)
-        .filter(([, data]) => data !== undefined)
-        .map(([wilayaCode, data]) => ({
-          wilayaCode,
-          homeFee: data.homeFee ?? undefined,
-          stopDeskFee: data.stopDeskFee ?? undefined,
-          estimatedDays: data.estimatedDays ?? undefined,
-          isActive: data.isActive ?? undefined,
-        }));
-
-      const res = await fetch("/api/delivery/matrix", {
-        method: "PUT",
+      const res = await fetch("/api/delivery/providers/test", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates }),
+        body: JSON.stringify({
+          code: modal.courier.key,
+          credentials: form,
+          ...(baseUrl ? { baseUrl } : {}),
+        }),
       });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        setMessage({ type: "success", message: `${result.updated} wilaya(s) mise(s) à jour` });
-        setEdited({});
-        setBulkHomeFee("");
-        setBulkStopDeskFee("");
-        setBulkDays("");
-        await fetchMatrix();
+      const data = await res.json();
+      if (data.success) {
+        setTestResult({ type: "success", message: t("deliveryPage.testSuccess") });
       } else {
-        setMessage({
+        setTestResult({
           type: "error",
-          message: result.error || "Erreur lors de la sauvegarde",
+          message: t("deliveryPage.testError", { error: data.error || "—" }),
         });
       }
     } catch {
-      setMessage({ type: "error", message: "Erreur réseau" });
+      setTestResult({ type: "error", message: t("deliveryPage.testError", { error: "—" }) });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  /* --- Enregistrement (POST) --- */
+  const handleSave = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!modal.courier) return;
+
+    // C1 — Validation stricte (option A) : tous les credentials requis doivent être
+    // remplis. En mode modification, l'API écrase l'objet credentials entier :
+    // envoyer une chaîne vide écraserait silencieusement les vrais identifiants.
+    const missing = modal.courier.requiredCredentials.some((key) => !form[key]?.trim());
+    if (missing) {
+      setFormError(t("deliveryPage.requiredField"));
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/delivery/providers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: modal.courier.key,
+          name: modal.courier.name,
+          platform: modal.courier.platform,
+          credentials: form,
+          ...(baseUrl ? { baseUrl } : {}),
+          ...(fromWilaya ? { fromWilaya: parseInt(fromWilaya, 10) } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({
+          type: "success",
+          message: modal.existing
+            ? t("deliveryPage.updateSuccess")
+            : t("deliveryPage.connectedSuccess"),
+        });
+        closeModal();
+        await fetchProviders();
+      } else {
+        setMessage({ type: "error", message: data.error || t("deliveryPage.loadError") });
+      }
+    } catch {
+      setMessage({ type: "error", message: t("deliveryPage.networkError") });
     } finally {
       setSaving(false);
     }
   };
 
-  /* --- Annulation --- */
-  const handleDiscard = () => {
-    setEdited({});
-    setBulkHomeFee("");
-    setBulkStopDeskFee("");
-    setBulkDays("");
+  /* --- Déconnexion (DELETE) --- */
+  const handleDisconnect = async () => {
+    if (!disconnectCode) return;
+    setDisconnecting(true);
     setMessage(null);
+    try {
+      const res = await fetch(`/api/delivery/providers/${disconnectCode}`, { method: "DELETE" });
+      if (res.ok) {
+        setMessage({ type: "success", message: t("deliveryPage.disconnectedSuccess") });
+        setDisconnectCode(null);
+        await fetchProviders();
+      } else {
+        const data = await res.json();
+        setMessage({ type: "error", message: data.error || t("deliveryPage.loadError") });
+      }
+    } catch {
+      setMessage({ type: "error", message: t("deliveryPage.networkError") });
+    } finally {
+      setDisconnecting(false);
+    }
   };
 
   /* ================================================================ */
@@ -188,221 +299,406 @@ export default function DeliveryMatrixPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Matrice de Livraison</h1>
-          <p className="text-sm text-[var(--text-muted)]">
-            69 Wilayas — Tarifs et délais de livraison
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {editedCount > 0 && (
-            <Badge variant="warning">{editedCount} modification(s) en cours</Badge>
-          )}
-          {editedCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={handleDiscard}>
-              Annuler
-            </Button>
-          )}
-          <Button onClick={handleSave} disabled={saving || editedCount === 0}>
-            {saving ? "Sauvegarde..." : "Sauvegarder"}
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("deliveryPage.title")}</h1>
+        <p className="text-sm text-[var(--text-muted)]">{t("deliveryPage.subtitle")}</p>
       </div>
 
-      {/* Message */}
-      {message && <Alert type={message.type} message={message.message} />}
+      {/* Message flash */}
+      {message && (
+        <Alert type={message.type} message={message.message} onDismiss={() => setMessage(null)} />
+      )}
 
       {/* Erreur de chargement */}
       {loadError && <Alert type="error" message={loadError} />}
 
-      {/* Édition en masse — affichée uniquement quand il y a des modifications */}
-      {editedCount > 0 && (
-        <Card className="p-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
-                Frais domicile (DA)
-              </label>
-              <Input
-                type="number"
-                value={bulkHomeFee}
-                onChange={(e) => setBulkHomeFee(e.target.value)}
-                placeholder="Ex: 600"
-                aria-label="Frais domicile en masse (DA)"
-                className="w-full sm:w-32"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
-                Frais Stop Desk (DA)
-              </label>
-              <Input
-                type="number"
-                value={bulkStopDeskFee}
-                onChange={(e) => setBulkStopDeskFee(e.target.value)}
-                placeholder="Ex: 400"
-                aria-label="Frais stop desk en masse (DA)"
-                className="w-full sm:w-32"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
-                Délai (jours)
-              </label>
-              <Input
-                type="number"
-                value={bulkDays}
-                onChange={(e) => setBulkDays(e.target.value)}
-                placeholder="Ex: 3"
-                aria-label="Délai en masse (jours)"
-                className="w-full sm:w-24"
-              />
-            </div>
-            <Button variant="secondary" size="sm" onClick={handleBulkApply}>
-              Appliquer aux sélectionnées
-            </Button>
-          </div>
-        </Card>
-      )}
+      {/* Avertissement couriers indisponibles */}
+      {couriersError && <Alert type="info" message={t("deliveryPage.couriersError")} />}
 
-      {/* Recherche */}
-      <div className="max-w-md">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher une wilaya (code ou nom)..."
-        />
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <>
+          {/* ========================================================== */}
+          {/*  Transporteurs connectés                                   */}
+          {/* ========================================================== */}
+          <section aria-labelledby="connected-heading">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2
+                  id="connected-heading"
+                  className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]"
+                >
+                  <Plug className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+                  {t("deliveryPage.connectedSection")}
+                </h2>
+                <p className="text-sm text-[var(--text-muted)]">
+                  {t("deliveryPage.connectedSectionHint")}
+                </p>
+              </div>
+              {connections.length > 0 && (
+                <Badge variant="success">
+                  {t("deliveryPage.connectedCount", { count: connections.length })}
+                </Badge>
+              )}
+            </div>
 
-      {/* Tableau de la matrice */}
-      <Card className="overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Spinner size="lg" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-[var(--border)]">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">Code</th>
-                  <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">
-                    Wilaya
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-[var(--text-muted)]">
-                    Frais Domicile (DA)
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-[var(--text-muted)]">
-                    Frais Stop Desk (DA)
-                  </th>
-                  <th className="px-4 py-3 text-center font-medium text-[var(--text-muted)]">
-                    Délai (jours)
-                  </th>
-                  <th className="px-4 py-3 text-center font-medium text-[var(--text-muted)]">
-                    Actif
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {filtered.map((row) => {
-                  const isEdited = hasChanges(row.wilayaCode);
+            {connections.length === 0 ? (
+              <Card className="py-12 text-center text-[var(--text-muted)]">
+                <Unplug
+                  className="mx-auto mb-4 h-12 w-12 text-[var(--text-muted)]"
+                  aria-hidden="true"
+                />
+                <p className="text-lg font-medium text-[var(--text-primary)]">
+                  {t("deliveryPage.emptyConnected")}
+                </p>
+                <p className="mt-2 text-sm">{t("deliveryPage.emptyConnectedHint")}</p>
+              </Card>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {connections.map((conn) => {
+                  const courier = couriers.find((c) => c.key === conn.code);
                   return (
-                    <tr
-                      key={row.wilayaCode}
-                      className={cn(
-                        isEdited && "bg-[var(--accent)]/[0.04]",
-                        "transition-all duration-300 hover:bg-[var(--bg-secondary)]/50"
-                      )}
-                    >
-                      {/* Code */}
-                      <td className="px-4 py-2 font-mono text-xs font-medium text-[var(--text-primary)]">
-                        {row.wilayaCode}
-                      </td>
+                    <Card key={conn.code} className="flex flex-col p-5">
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+                          <p className="font-semibold text-[var(--text-primary)]">{conn.name}</p>
+                        </div>
+                        <Badge variant="success">{t("deliveryPage.connected")}</Badge>
+                      </div>
 
-                      {/* Nom */}
-                      <td className="px-4 py-2">
-                        <p className="font-medium text-[var(--text-primary)]">{row.wilaya.name}</p>
-                        <p className="text-xs text-[var(--text-muted)]">{row.wilaya.nameAr}</p>
-                      </td>
+                      <Badge variant="info" className="mb-3 self-start">
+                        {conn.platform}
+                      </Badge>
 
-                      {/* Frais domicile */}
-                      <td className="px-4 py-2 text-right">
-                        <input
-                          type="number"
-                          value={getFieldValue(row, "homeFee")}
-                          onChange={(e) =>
-                            updateField(row.wilayaCode, "homeFee", parseFloat(e.target.value) || 0)
-                          }
-                          aria-label={`Frais domicile pour ${row.wilaya.name}`}
-                          className="w-24 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-right text-sm text-[var(--text-primary)] transition-all duration-300 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-                        />
-                      </td>
+                      {/* Credentials masqués */}
+                      <div className="mb-4 space-y-1.5">
+                        <p className="text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
+                          {t("deliveryPage.credentials")}
+                        </p>
+                        {Object.keys(conn.credentials).map((key) => (
+                          <div
+                            key={key}
+                            className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-1.5"
+                          >
+                            <span className="font-mono text-xs text-[var(--text-muted)]">
+                              {key}
+                            </span>
+                            <span className="font-mono text-xs text-[var(--text-primary)]">
+                              {MASK}
+                            </span>
+                          </div>
+                        ))}
+                        {conn.baseUrl && (
+                          <div className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-1.5">
+                            <span className="font-mono text-xs text-[var(--text-muted)]">
+                              {t("deliveryPage.baseUrl")}
+                            </span>
+                            <span className="truncate pl-2 font-mono text-xs text-[var(--text-primary)]">
+                              {conn.baseUrl}
+                            </span>
+                          </div>
+                        )}
+                        {conn.fromWilaya != null && (
+                          <div className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-1.5">
+                            <span className="font-mono text-xs text-[var(--text-muted)]">
+                              {t("deliveryPage.fromWilaya")}
+                            </span>
+                            <span className="font-mono text-xs text-[var(--text-primary)]">
+                              {conn.fromWilaya}
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
-                      {/* Frais stop desk */}
-                      <td className="px-4 py-2 text-right">
-                        <input
-                          type="number"
-                          value={getFieldValue(row, "stopDeskFee")}
-                          onChange={(e) =>
-                            updateField(
-                              row.wilayaCode,
-                              "stopDeskFee",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          aria-label={`Frais stop desk pour ${row.wilaya.name}`}
-                          className="w-24 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-right text-sm text-[var(--text-primary)] transition-all duration-300 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-                        />
-                      </td>
-
-                      {/* Délai */}
-                      <td className="px-4 py-2 text-center">
-                        <input
-                          type="number"
-                          value={getFieldValue(row, "estimatedDays")}
-                          onChange={(e) =>
-                            updateField(
-                              row.wilayaCode,
-                              "estimatedDays",
-                              parseInt(e.target.value, 10) || 1
-                            )
-                          }
-                          aria-label={`Délai de livraison pour ${row.wilaya.name}`}
-                          className="w-16 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1.5 text-center text-sm text-[var(--text-primary)] transition-all duration-300 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-                        />
-                      </td>
-
-                      {/* Toggle actif */}
-                      <td className="px-4 py-2 text-center">
-                        <ToggleSwitch
-                          checked={getFieldValue(row, "isActive")}
-                          onChange={() =>
-                            updateField(row.wilayaCode, "isActive", !getFieldValue(row, "isActive"))
-                          }
-                          label={getFieldValue(row, "isActive") ? "Désactiver" : "Activer"}
-                        />
-                      </td>
-                    </tr>
+                      <div className="mt-auto flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => courier && openConnectModal(courier, conn)}
+                          aria-label={`${t("deliveryPage.edit")} ${conn.name}`}
+                        >
+                          <Pencil className="ms-1.5 h-4 w-4" aria-hidden="true" />
+                          {t("deliveryPage.edit")}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => setDisconnectCode(conn.code)}
+                          aria-label={`${t("deliveryPage.disconnect")} ${conn.name}`}
+                        >
+                          <Trash2 className="ms-1.5 h-4 w-4" aria-hidden="true" />
+                          {t("deliveryPage.disconnect")}
+                        </Button>
+                      </div>
+                    </Card>
                   );
                 })}
-              </tbody>
-            </table>
-
-            {filtered.length === 0 && (
-              <div className="py-12 text-center text-sm text-[var(--text-muted)]">
-                Aucune wilaya trouvée pour « {search} »
               </div>
             )}
-          </div>
-        )}
-      </Card>
+          </section>
 
-      {/* Footer info */}
-      <p className="text-xs text-[var(--text-muted)]">
-        {filtered.length} wilaya(s) affichée(s) sur {matrix.length}
-        {editedCount > 0 && ` — ${editedCount} modification(s) non sauvegardée(s)`}
-      </p>
+          {/* ========================================================== */}
+          {/*  Transporteurs disponibles                                  */}
+          {/* ========================================================== */}
+          <section aria-labelledby="available-heading">
+            <div className="mb-3">
+              <h2
+                id="available-heading"
+                className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]"
+              >
+                <PlugZap className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+                {t("deliveryPage.availableSection")}
+              </h2>
+              <p className="text-sm text-[var(--text-muted)]">
+                {t("deliveryPage.availableSectionHint")}
+              </p>
+            </div>
+
+            {/* Recherche */}
+            <div className="relative mb-4 max-w-md">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
+                aria-hidden="true"
+              />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("deliveryPage.searchPlaceholder")}
+                aria-label={t("deliveryPage.searchPlaceholder")}
+                className="pl-9"
+              />
+            </div>
+
+            {couriers.length === 0 ? (
+              <Card className="py-12 text-center text-[var(--text-muted)]">
+                <Truck
+                  className="mx-auto mb-4 h-12 w-12 text-[var(--text-muted)]"
+                  aria-hidden="true"
+                />
+                <p className="text-lg font-medium text-[var(--text-primary)]">
+                  {t("deliveryPage.emptyAvailable")}
+                </p>
+              </Card>
+            ) : filteredCouriers.length === 0 ? (
+              <Card className="py-12 text-center text-sm text-[var(--text-muted)]">
+                {t("deliveryPage.noResults", { search })}
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {groupedByPlatform.map(([platform, list]) => (
+                  <div key={platform}>
+                    <h3 className="mb-2 text-sm font-semibold tracking-wide text-[var(--text-muted)] uppercase">
+                      {platform}
+                    </h3>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {list.map((courier) => {
+                        const isConnected = connectedCodes.has(courier.key);
+                        return (
+                          <Card key={courier.key} className="flex flex-col p-5">
+                            <div className="mb-2 flex items-start justify-between gap-2">
+                              <p className="font-semibold text-[var(--text-primary)]">
+                                {courier.name}
+                              </p>
+                              {isConnected ? (
+                                <Badge variant="success">{t("deliveryPage.connected")}</Badge>
+                              ) : (
+                                <Badge variant="default">{t("deliveryPage.notConnected")}</Badge>
+                              )}
+                            </div>
+
+                            <p className="mb-3 font-mono text-xs text-[var(--text-muted)]">
+                              {courier.key}
+                            </p>
+
+                            {/* Capacités */}
+                            <div className="mb-4 flex flex-wrap gap-1.5">
+                              {courier.capabilities.createShipment && (
+                                <Badge variant="info">{t("deliveryPage.capCreateShipment")}</Badge>
+                              )}
+                              {courier.capabilities.track && (
+                                <Badge variant="info">{t("deliveryPage.capTrack")}</Badge>
+                              )}
+                              {courier.capabilities.rates && (
+                                <Badge variant="info">{t("deliveryPage.capRates")}</Badge>
+                              )}
+                            </div>
+
+                            <div className="mt-auto">
+                              <Button
+                                variant={isConnected ? "secondary" : "primary"}
+                                size="sm"
+                                onClick={() =>
+                                  openConnectModal(
+                                    courier,
+                                    isConnected
+                                      ? (connections.find((c) => c.code === courier.key) ?? null)
+                                      : null
+                                  )
+                                }
+                                aria-label={`${isConnected ? t("deliveryPage.edit") : t("deliveryPage.connect")} ${courier.name}`}
+                              >
+                                <Link2 className="ms-1.5 h-4 w-4" aria-hidden="true" />
+                                {isConnected ? t("deliveryPage.edit") : t("deliveryPage.connect")}
+                              </Button>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {/* ============================================================ */}
+      {/*  Modal de connexion / modification                            */}
+      {/* ============================================================ */}
+      <Modal
+        isOpen={modal.open}
+        onClose={closeModal}
+        title={modal.existing ? t("deliveryPage.editTitle") : t("deliveryPage.connectTitle")}
+      >
+        {modal.courier && (
+          <form className="space-y-4" onSubmit={handleSave}>
+            <div className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+              <p className="font-semibold text-[var(--text-primary)]">{modal.courier.name}</p>
+              <Badge variant="info">{modal.courier.platform}</Badge>
+            </div>
+
+            {/* Note en mode modification : les credentials sont masqués côté serveur */}
+            {modal.existing && <Alert type="info" message={t("deliveryPage.reenterCredentials")} />}
+
+            {/* Champs credentials dynamiques */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
+                {t("deliveryPage.credentials")}
+              </p>
+              {modal.courier.requiredCredentials.map((key) => (
+                <Input
+                  key={key}
+                  id={`cred-${key}`}
+                  label={key}
+                  value={form[key] ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                  placeholder={modal.existing ? MASK : key}
+                  type="password"
+                  autoComplete="off"
+                  required
+                />
+              ))}
+            </div>
+
+            {/* baseUrl si requis */}
+            {modal.courier.requiresBaseUrl && (
+              <Input
+                id="base-url"
+                label={t("deliveryPage.baseUrl")}
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder={t("deliveryPage.baseUrlPlaceholder")}
+                autoComplete="off"
+              />
+            )}
+
+            {/* fromWilaya optionnel */}
+            <Input
+              id="from-wilaya"
+              label={t("deliveryPage.fromWilaya")}
+              value={fromWilaya}
+              onChange={(e) => setFromWilaya(e.target.value)}
+              placeholder={t("deliveryPage.fromWilayaPlaceholder")}
+              type="number"
+              min={1}
+              max={58}
+            />
+
+            {/* Résultat du test */}
+            {testResult && <Alert type={testResult.type} message={testResult.message} />}
+
+            {/* Erreur de validation (credentials requis manquants) */}
+            {formError && <Alert type="error" message={formError} />}
+
+            <p className="text-xs text-[var(--text-muted)]">{t("deliveryPage.testHint")}</p>
+
+            {/* Actions */}
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <Button type="button" variant="ghost" size="sm" onClick={closeModal}>
+                {t("deliveryPage.cancel")}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleTest}
+                disabled={testing || saving}
+              >
+                {testing ? (
+                  <>
+                    <Loader2 className="ms-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                    {t("deliveryPage.testing")}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="ms-1.5 h-4 w-4" aria-hidden="true" />
+                    {t("deliveryPage.test")}
+                  </>
+                )}
+              </Button>
+              <Button type="submit" disabled={saving || testing}>
+                {saving ? (
+                  <>
+                    <Loader2 className="ms-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                    {t("deliveryPage.saving")}
+                  </>
+                ) : modal.existing ? (
+                  t("deliveryPage.edit")
+                ) : (
+                  t("deliveryPage.connect")
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* ============================================================ */}
+      {/*  Modal de confirmation de déconnexion                         */}
+      {/* ============================================================ */}
+      <Modal
+        isOpen={!!disconnectCode}
+        onClose={() => setDisconnectCode(null)}
+        title={t("deliveryPage.disconnectTitle")}
+      >
+        <p className="mb-6 text-[var(--text-secondary)]">
+          {t("deliveryPage.disconnectConfirm")} {t("deliveryPage.disconnectIrreversible")}
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setDisconnectCode(null)}>
+            {t("deliveryPage.cancel")}
+          </Button>
+          <Button variant="danger" onClick={handleDisconnect} disabled={disconnecting}>
+            {disconnecting ? (
+              <>
+                <Loader2 className="ms-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                {t("deliveryPage.disconnect")}
+              </>
+            ) : (
+              <>
+                <XCircle className="ms-1.5 h-4 w-4" aria-hidden="true" />
+                {t("deliveryPage.disconnect")}
+              </>
+            )}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

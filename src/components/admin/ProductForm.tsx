@@ -8,6 +8,7 @@ import Select from "@/components/ui/Select";
 import Spinner from "@/components/ui/Spinner";
 import ImageUploader from "@/components/admin/ImageUploader";
 import type { ProductImage } from "@/components/admin/ImageUploader";
+import { useTranslations } from "next-intl";
 
 interface Variant {
   id?: string;
@@ -29,6 +30,7 @@ interface ProductFormProps {
 
 export default function ProductForm({ productId }: ProductFormProps) {
   const router = useRouter();
+  const t = useTranslations("admin");
   const isNew = !productId;
 
   const [loading, setLoading] = useState(!isNew);
@@ -57,7 +59,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
     setLoading(true);
     fetch(`/api/products/${productId}`)
       .then((res) => {
-        if (!res.ok) throw new Error("Produit non trouvé");
+        if (!res.ok) throw new Error(t("productForm.notFound"));
         return res.json();
       })
       .then((product) => {
@@ -103,7 +105,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
         }));
         setVariants(loadedVariants);
       })
-      .catch(() => setError("Erreur lors du chargement du produit"))
+      .catch(() => setError(t("productForm.loadError")))
       .finally(() => setLoading(false));
   }, [productId]);
 
@@ -160,6 +162,16 @@ export default function ProductForm({ productId }: ProductFormProps) {
     setVariants((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Résout un message d'erreur : si c'est une clé de traduction brute
+  // (ex: "admin.validation.nameRequired"), on la résout via t().
+  // Sinon, on garde le message tel quel.
+  const resolveError = (message: string) => {
+    if (message.startsWith("admin.")) {
+      return t(message.slice("admin.".length));
+    }
+    return message;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -190,7 +202,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Erreur lors de la sauvegarde");
+        throw new Error(err.error || t("productForm.saveError"));
       }
 
       const savedProduct = await res.json();
@@ -215,7 +227,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
 
       if (!variantsRes.ok) {
         const err = await variantsRes.json();
-        throw new Error(err.error || "Erreur lors de la sauvegarde des variantes");
+        throw new Error(err.error || t("productForm.saveVariantsError"));
       }
 
       // Save images (replace all for this product)
@@ -236,7 +248,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
       router.push("/admin/products");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lors de la sauvegarde");
+      setError(err instanceof Error ? resolveError(err.message) : t("productForm.saveError"));
     } finally {
       setSaving(false);
     }
@@ -272,59 +284,61 @@ export default function ProductForm({ productId }: ProductFormProps) {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Main Info */}
         <section className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Informations</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+            {t("productForm.info")}
+          </h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
-              label="Nom *"
+              label={t("productForm.name")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="Nom du produit"
+              placeholder={t("productForm.namePlaceholder")}
             />
             <Input
-              label="Slug"
+              label={t("productForm.slug")}
               value={slug}
               onChange={(e) => {
                 setSlug(e.target.value);
                 setSlugEdited(true);
               }}
-              placeholder="auto-généré depuis le nom"
+              placeholder={t("productForm.slugPlaceholder")}
             />
             <div className="md:col-span-2">
               <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
-                Description
+                {t("productForm.description")}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
                 className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] transition-[var(--transition)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-light)]"
-                placeholder="Description détaillée du produit"
+                placeholder={t("productForm.descriptionPlaceholder")}
               />
             </div>
             <Input
-              label="Description courte (max 160)"
+              label={t("productForm.shortDescription")}
               value={shortDesc}
               onChange={(e) => setShortDesc(e.target.value)}
               maxLength={160}
-              placeholder="Résumé pour les listings"
+              placeholder={t("productForm.shortDescriptionPlaceholder")}
             />
             <Input
-              label="Prix de base (DA) *"
+              label={t("productForm.basePrice")}
               type="number"
               value={basePrice}
               onChange={(e) => setBasePrice(e.target.value)}
               required
               min="0"
               step="0.01"
-              placeholder="0"
+              placeholder={t("productForm.basePricePlaceholder")}
             />
             <Select
-              label="Catégorie"
+              label={t("productForm.category")}
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
               options={[
-                { value: "", label: "Aucune catégorie" },
+                { value: "", label: t("productForm.noCategory") },
                 ...categories.map((c) => ({ value: c.id, label: c.name })),
               ]}
             />
@@ -337,7 +351,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
                 onChange={(e) => setIsActive(e.target.checked)}
                 className="accent-[var(--accent)]"
               />
-              <span className="text-sm text-[var(--text-primary)]">Actif</span>
+              <span className="text-sm text-[var(--text-primary)]">{t("productForm.active")}</span>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -346,35 +360,41 @@ export default function ProductForm({ productId }: ProductFormProps) {
                 onChange={(e) => setIsFeatured(e.target.checked)}
                 className="accent-[var(--accent)]"
               />
-              <span className="text-sm text-[var(--text-primary)]">En vedette</span>
+              <span className="text-sm text-[var(--text-primary)]">
+                {t("productForm.featured")}
+              </span>
             </label>
           </div>
         </section>
 
         {/* SEO */}
         <section className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">SEO</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+            {t("productForm.seo")}
+          </h3>
           <div className="space-y-4">
             <Input
-              label="Titre SEO (max 60)"
+              label={t("productForm.seoTitle")}
               value={seoTitle}
               onChange={(e) => setSeoTitle(e.target.value)}
               maxLength={60}
-              placeholder="Titre pour les moteurs de recherche"
+              placeholder={t("productForm.seoTitlePlaceholder")}
             />
             <Input
-              label="Description SEO (max 160)"
+              label={t("productForm.seoDescription")}
               value={seoDescription}
               onChange={(e) => setSeoDescription(e.target.value)}
               maxLength={160}
-              placeholder="Description pour les moteurs de recherche"
+              placeholder={t("productForm.seoDescriptionPlaceholder")}
             />
           </div>
         </section>
 
         {/* Images */}
         <section className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Images</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+            {t("productForm.images")}
+          </h3>
           <ImageUploader images={images} onImagesChange={setImages} maxImages={10} />
         </section>
 
@@ -382,19 +402,19 @@ export default function ProductForm({ productId }: ProductFormProps) {
         <section className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card)] p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Variants</h3>
-              <p className="text-xs text-[var(--text-muted)]">
-                Tailles, couleurs, options… Le variant contient le stock et le prix final.
-              </p>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                {t("productForm.variants")}
+              </h3>
+              <p className="text-xs text-[var(--text-muted)]">{t("productForm.variantsHint")}</p>
             </div>
             <Button type="button" variant="secondary" size="sm" onClick={addVariant}>
-              + Ajouter
+              {t("productForm.addVariant")}
             </Button>
           </div>
 
           {variants.length === 0 ? (
             <p className="py-4 text-center text-sm text-[var(--text-muted)]">
-              Aucun variant. Ajoutez des variantes pour gérer les tailles, couleurs, etc.
+              {t("productForm.noVariants")}
             </p>
           ) : (
             <div className="space-y-3">
@@ -405,24 +425,24 @@ export default function ProductForm({ productId }: ProductFormProps) {
                 >
                   <div className="flex-1">
                     <Input
-                      label="Nom"
+                      label={t("productForm.variantName")}
                       value={variant.name}
                       onChange={(e) => updateVariant(index, "name", e.target.value)}
-                      placeholder="ex: Taille M, Rouge"
+                      placeholder={t("productForm.variantNamePlaceholder")}
                       required
                     />
                   </div>
                   <div className="w-full sm:w-32">
                     <Input
-                      label="SKU"
+                      label={t("productForm.sku")}
                       value={variant.sku}
                       onChange={(e) => updateVariant(index, "sku", e.target.value)}
-                      placeholder="SKU-001"
+                      placeholder={t("productForm.skuPlaceholder")}
                     />
                   </div>
                   <div className="w-full sm:w-32">
                     <Input
-                      label="Prix (DA)"
+                      label={t("productForm.variantPrice")}
                       type="number"
                       value={String(variant.price)}
                       onChange={(e) =>
@@ -441,15 +461,21 @@ export default function ProductForm({ productId }: ProductFormProps) {
                           ? "bg-green-100 text-green-700 hover:bg-green-200"
                           : "bg-red-100 text-red-700 hover:bg-red-200"
                       }`}
-                      aria-label={variant.isActive ? "Désactiver ce variant" : "Activer ce variant"}
+                      aria-label={
+                        variant.isActive
+                          ? t("productForm.disableVariant")
+                          : t("productForm.enableVariant")
+                      }
                     >
-                      {variant.isActive ? "Actif" : "Inactif"}
+                      {variant.isActive
+                        ? t("productForm.variantActive")
+                        : t("productForm.variantInactive")}
                     </button>
                     <button
                       type="button"
                       onClick={() => removeVariant(index)}
                       className="rounded p-1 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                      aria-label="Supprimer ce variant"
+                      aria-label={t("productForm.deleteVariant")}
                     >
                       ✕
                     </button>
@@ -463,10 +489,14 @@ export default function ProductForm({ productId }: ProductFormProps) {
         {/* Submit */}
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={() => router.push("/admin/products")}>
-            Annuler
+            {t("productsPage.cancel")}
           </Button>
           <Button type="submit" disabled={saving}>
-            {saving ? "Sauvegarde..." : isNew ? "Créer le produit" : "Sauvegarder"}
+            {saving
+              ? t("productForm.saving")
+              : isNew
+                ? t("productForm.create")
+                : t("productForm.save")}
           </Button>
         </div>
       </form>

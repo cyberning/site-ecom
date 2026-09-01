@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Mail, Lock } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useSession } from "@/hooks/useSession";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -12,6 +13,7 @@ import Alert from "@/components/ui/Alert";
 type Feedback = { type: "success" | "error"; message: string } | null;
 
 export default function AdminAccountPage() {
+  const t = useTranslations("admin");
   const { user, isLoading, update } = useSession();
 
   // ---- Email ----
@@ -37,7 +39,7 @@ export default function AdminAccountPage() {
 
     const trimmed = email.trim();
     if (!trimmed) {
-      setEmailFeedback({ type: "error", message: "Veuillez saisir un email." });
+      setEmailFeedback({ type: "error", message: t("accountPage.emailRequired") });
       return;
     }
 
@@ -54,7 +56,7 @@ export default function AdminAccountPage() {
       if (!res.ok) {
         setEmailFeedback({
           type: "error",
-          message: data.error || "Erreur lors du changement d'email.",
+          message: data.error || t("accountPage.emailError"),
         });
         return;
       }
@@ -63,9 +65,9 @@ export default function AdminAccountPage() {
       setEmail(data.email ?? trimmed);
       // Rafraîchit la session JWT côté client pour refléter le nouvel email
       await update({ email: data.email ?? trimmed });
-      setEmailFeedback({ type: "success", message: "Email mis à jour avec succès." });
+      setEmailFeedback({ type: "success", message: t("accountPage.emailUpdated") });
     } catch {
-      setEmailFeedback({ type: "error", message: "Erreur réseau. Veuillez réessayer." });
+      setEmailFeedback({ type: "error", message: t("accountPage.networkError") });
     } finally {
       setEmailLoading(false);
     }
@@ -79,14 +81,14 @@ export default function AdminAccountPage() {
     if (newPassword.length < 6) {
       setPasswordFeedback({
         type: "error",
-        message: "Le nouveau mot de passe doit contenir au moins 6 caractères.",
+        message: t("accountPage.passwordTooShort"),
       });
       return;
     }
     if (newPassword !== confirmPassword) {
       setPasswordFeedback({
         type: "error",
-        message: "Les mots de passe ne correspondent pas.",
+        message: t("accountPage.passwordsMismatch"),
       });
       return;
     }
@@ -104,18 +106,18 @@ export default function AdminAccountPage() {
       if (!res.ok) {
         setPasswordFeedback({
           type: "error",
-          message: data.error || "Erreur lors du changement de mot de passe.",
+          message: data.error || t("accountPage.passwordError"),
         });
         return;
       }
 
-      setPasswordFeedback({ type: "success", message: "Mot de passe modifié avec succès." });
+      setPasswordFeedback({ type: "success", message: t("accountPage.passwordUpdated") });
       // Réinitialiser les champs après succès
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch {
-      setPasswordFeedback({ type: "error", message: "Erreur réseau. Veuillez réessayer." });
+      setPasswordFeedback({ type: "error", message: t("accountPage.networkError") });
     } finally {
       setPasswordLoading(false);
     }
@@ -125,7 +127,7 @@ export default function AdminAccountPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
         <Spinner size="lg" />
-        <p className="text-sm text-[var(--text-secondary)]">Chargement de votre compte...</p>
+        <p className="text-sm text-[var(--text-secondary)]">{t("accountPage.loading")}</p>
       </div>
     );
   }
@@ -134,10 +136,8 @@ export default function AdminAccountPage() {
     <div className="space-y-6 pb-12">
       {/* ---- Header ---- */}
       <div>
-        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Mon compte</h2>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Gérez votre adresse email et votre mot de passe
-        </p>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">{t("accountPage.title")}</h2>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">{t("accountPage.subtitle")}</p>
       </div>
 
       {/* ---- Changer l'email ---- */}
@@ -146,17 +146,19 @@ export default function AdminAccountPage() {
           <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)]/10">
             <Mail className="h-5 w-5 text-[var(--accent)]" />
           </div>
-          <h3 className="text-lg font-bold text-[var(--text-primary)]">Adresse email</h3>
+          <h3 className="text-lg font-bold text-[var(--text-primary)]">
+            {t("accountPage.emailSection")}
+          </h3>
         </div>
 
         <form onSubmit={handleEmailSubmit} className="space-y-4" noValidate>
           <Input
             id="account-email"
-            label="Email"
+            label={t("accountPage.email")}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="vous@exemple.com"
+            placeholder={t("accountPage.emailPlaceholder")}
             autoComplete="email"
           />
 
@@ -166,10 +168,10 @@ export default function AdminAccountPage() {
             <Button type="submit" disabled={emailLoading}>
               {emailLoading ? (
                 <span className="flex items-center gap-2">
-                  <Spinner size="sm" /> Enregistrement...
+                  <Spinner size="sm" /> {t("accountPage.saving")}
                 </span>
               ) : (
-                "Enregistrer"
+                t("accountPage.save")
               )}
             </Button>
           </div>
@@ -182,13 +184,15 @@ export default function AdminAccountPage() {
           <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)]/10">
             <Lock className="h-5 w-5 text-[var(--accent)]" />
           </div>
-          <h3 className="text-lg font-bold text-[var(--text-primary)]">Mot de passe</h3>
+          <h3 className="text-lg font-bold text-[var(--text-primary)]">
+            {t("accountPage.passwordSection")}
+          </h3>
         </div>
 
         <form onSubmit={handlePasswordSubmit} className="space-y-4" noValidate>
           <Input
             id="account-current-password"
-            label="Mot de passe actuel"
+            label={t("accountPage.currentPassword")}
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -196,7 +200,7 @@ export default function AdminAccountPage() {
           />
           <Input
             id="account-new-password"
-            label="Nouveau mot de passe"
+            label={t("accountPage.newPassword")}
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -204,7 +208,7 @@ export default function AdminAccountPage() {
           />
           <Input
             id="account-confirm-password"
-            label="Confirmer le nouveau mot de passe"
+            label={t("accountPage.confirmPassword")}
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -219,10 +223,10 @@ export default function AdminAccountPage() {
             <Button type="submit" disabled={passwordLoading}>
               {passwordLoading ? (
                 <span className="flex items-center gap-2">
-                  <Spinner size="sm" /> Modification...
+                  <Spinner size="sm" /> {t("accountPage.changing")}
                 </span>
               ) : (
-                "Modifier le mot de passe"
+                t("accountPage.changePassword")
               )}
             </Button>
           </div>

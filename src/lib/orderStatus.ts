@@ -15,15 +15,36 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+/**
+ * Clé de traduction (namespace `status.*`) pour chaque statut.
+ * IMPORTANT: aucune valeur ne porte le préfixe `admin.` car tous les appelants
+ * passent un `t` déjà namespacé `admin` (via `useTranslations("admin")`).
+ * Les composants doivent résoudre l'affichage via `getStatusLabel(status, t)`.
+ */
 export const STATUS_LABELS: Record<string, string> = {
-  PENDING: "En attente",
-  NEEDS_CONFIRMATION: "À confirmer",
-  CONFIRMED: "Confirmée",
-  SHIPPED: "Expédiée",
-  DELIVERED: "Livrée",
-  CANCELLED: "Annulée",
-  RETURNED: "Retournée",
+  PENDING: "status.pending",
+  NEEDS_CONFIRMATION: "status.toConfirm",
+  CONFIRMED: "status.confirmed",
+  SHIPPED: "status.shipped",
+  DELIVERED: "status.delivered",
+  CANCELLED: "status.cancelled",
+  RETURNED: "status.returned",
 };
+
+/**
+ * Résout le libellé traduit d'un statut.
+ * @param status Le statut brut (ex: "PENDING").
+ * @param t      La fonction de traduction (ex: `t` de next-intl).
+ * @returns Le libellé traduit, ou le statut brut si la traduction est absente.
+ */
+export function getStatusLabel(status: OrderStatus, t: (key: string) => string): string {
+  const key = STATUS_LABELS[status] || `status.${status.toLowerCase()}`;
+  const label = t(key);
+  // Si next-intl retourne la clé brute (message manquant), on garde le statut brut.
+  // `admin.${key}` couvre le cas d'un `t` non namespacé (racine) avec des clés `status.*`.
+  if (label === key || label === `admin.${key}`) return status;
+  return label;
+}
 
 /** Couleurs { bg, text } pour les badges personnalisés (dashboard). */
 export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -50,8 +71,16 @@ export const STATUS_BADGE_VARIANT: Record<
   RETURNED: "danger",
 };
 
-/** Options { value, label } pour les selects de statut. */
+/**
+ * Options { value, labelKey, label } pour les selects de statut.
+ * - `labelKey` : clé du namespace `status.*` (sans préfixe `admin.`), à utiliser
+ *   via `t(option.labelKey)` — `t` étant le namespace `admin`.
+ * - `label`    : conservé pour compatibilité (contient la clé brute). Les composants
+ *   existants qui affichent `option.label` montreront la clé tant qu'ils n'utilisent
+ *   pas `t(option.labelKey)`.
+ */
 export const STATUS_OPTIONS = ORDER_STATUSES.map((status) => ({
   value: status,
+  labelKey: STATUS_LABELS[status],
   label: STATUS_LABELS[status],
 }));

@@ -2,12 +2,14 @@
 
 import { useSession } from "@/hooks/useSession";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Menu, LogOut, Palette } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { THEMES } from "@/lib/themes";
+import AdminLanguageSwitcher from "./AdminLanguageSwitcher";
 
 interface AdminHeaderProps {
   onToggleSidebar: () => void;
@@ -15,8 +17,9 @@ interface AdminHeaderProps {
 
 export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
   const { session } = useSession();
-  const { theme, setTheme } = useTheme();
+  const { theme: currentTheme, setTheme } = useTheme();
   const router = useRouter();
+  const t = useTranslations("admin");
 
   const [themeOpen, setThemeOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -54,16 +57,21 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
         <button
           onClick={onToggleSidebar}
           className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-[var(--transition)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] lg:hidden"
-          aria-label="Ouvrir le menu"
+          aria-label={t("header.openMenu")}
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        <h1 className="text-lg font-semibold text-[var(--text-primary)]">Admin Panel</h1>
+        <h1 className="text-lg font-semibold text-[var(--text-primary)]">
+          {t("header.adminPanel")}
+        </h1>
       </div>
 
       {/* ---- Right ---- */}
       <div className="flex items-center gap-3">
+        {/* Language switcher dropdown */}
+        <AdminLanguageSwitcher />
+
         {/* Theme switcher dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -74,7 +82,7 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
                 ? "bg-[var(--accent-light)] text-[var(--accent)]"
                 : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
             )}
-            aria-label="Changer de thème"
+            aria-label={t("header.changeTheme")}
             aria-expanded={themeOpen}
             aria-haspopup="true"
           >
@@ -85,19 +93,21 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
             <div
               className="absolute top-full right-0 z-50 mt-2 w-52 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-lg"
               role="menu"
-              aria-label="Sélection de thème"
+              aria-label={t("header.themeSelection")}
             >
-              <p className="mb-1.5 px-2 text-xs font-medium text-[var(--text-muted)]">Thème</p>
-              {THEMES.map((t) => (
+              <p className="mb-1.5 px-2 text-xs font-medium text-[var(--text-muted)]">
+                {t("header.theme")}
+              </p>
+              {THEMES.map((theme) => (
                 <button
-                  key={t.name}
+                  key={theme.name}
                   onClick={() => {
-                    setTheme(t.name);
+                    setTheme(theme.name);
                     setThemeOpen(false);
                   }}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-sm transition-[var(--transition)]",
-                    theme === t.name
+                    currentTheme === theme.name
                       ? "bg-[var(--accent-light)] text-[var(--accent)]"
                       : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
                   )}
@@ -105,13 +115,17 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
                 >
                   <span
                     className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: t.color }}
+                    style={{ backgroundColor: theme.color }}
                     aria-hidden="true"
                   >
-                    {theme === t.name && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    {currentTheme === theme.name && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                    )}
                   </span>
-                  <span>{t.label}</span>
-                  {theme === t.name && <span className="ml-auto text-[var(--accent)]">✓</span>}
+                  <span>{theme.label}</span>
+                  {currentTheme === theme.name && (
+                    <span className="ml-auto text-[var(--accent)]">✓</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -135,10 +149,10 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
         <button
           onClick={handleLogout}
           className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--text-muted)] transition-[var(--transition)] hover:bg-red-500/10 hover:text-red-500"
-          aria-label="Se déconnecter"
+          aria-label={t("header.logout")}
         >
           <LogOut className="h-4 w-4" />
-          <span className="hidden sm:inline">Déconnexion</span>
+          <span className="hidden sm:inline">{t("header.logout")}</span>
         </button>
       </div>
     </header>

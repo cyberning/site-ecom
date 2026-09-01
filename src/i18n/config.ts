@@ -13,3 +13,9 @@ export const localeFlags: Record<Locale, string> = {
   ar: "🇩🇿",
   en: "🇬🇧",
 };
+
+// Cookie dédié à la langue du dashboard admin, indépendant du storefront
+export const ADMIN_LOCALE_COOKIE = "ADMIN_LOCALE";
+
+// Cookie de la langue du storefront (lu par src/i18n/request.ts côté serveur)
+export const NEXT_LOCALE_COOKIE = "NEXT_LOCALE";

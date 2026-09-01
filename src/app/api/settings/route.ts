@@ -13,6 +13,10 @@ export async function GET() {
 
   try {
     const settings = await prisma.setting.findMany({
+      // Exclure `delivery_providers` : cette clé contient les credentials transporteurs
+      // (chiffrés au repos, mais jamais exposés via l'API settings générique).
+      // Ils ne sont accessibles que via /api/delivery/providers (masqués).
+      where: { key: { not: "delivery_providers" } },
       orderBy: { category: "asc" },
     });
 

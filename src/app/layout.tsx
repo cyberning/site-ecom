@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_Arabic } from "next/font/google";
 import { cookies } from "next/headers";
+import { getMessages } from "next-intl/server";
 import AuthProvider from "@/providers/AuthProvider";
 import ThemeProvider from "@/providers/ThemeProvider";
 import IntlProvider from "@/providers/IntlProvider";
@@ -72,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale: Locale =
     localeCookie && locales.includes(localeCookie as Locale) ? (localeCookie as Locale) : "fr";
   const dir = locale === "ar" ? "rtl" : "ltr";
+  const messages = await getMessages();
 
   // Thème sauvegardé en DB — utilisé comme fallback quand le cookie est absent
   const dbTheme = await getActiveTheme();
@@ -107,7 +109,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${inter.className} ${locale === "ar" ? notoArabic.className : ""}`}>
         <AuthProvider>
           <ThemeProvider initialTheme={dbTheme}>
-            <IntlProvider>{children}</IntlProvider>
+            <IntlProvider initialLocale={locale} initialMessages={messages}>
+              {children}
+            </IntlProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

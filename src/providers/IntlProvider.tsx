@@ -26,23 +26,31 @@ function getLocaleFromCookie(): Locale {
 
 /**
  * Client-side i18n provider.
- * Reads the locale from the NEXT_LOCALE cookie and loads messages dynamically.
+ * Starts with the locale and messages fournis par le SSR (via `getMessages`),
+ * puis relit le cookie au montage et en polling pour refléter les changements.
  *
- * IMPORTANT: `NextIntlClientProvider` est rendu dès le premier rendu (avec des
- * messages vides) afin que `useTranslations` appelé par les composants enfants
- * (ex: AdminLayoutClient) ait TOUJOURS un provider disponible. Sans cela,
- * `useTranslations` hors d'un `NextIntlClientProvider` lève une erreur pendant
- * le SSR / le premier rendu client, tant que les messages ne sont pas chargés.
+ * IMPORTANT: `NextIntlClientProvider` est rendu dès le premier rendu afin que
+ * `useTranslations` appelé par les composants enfants (ex: AdminLayoutClient)
+ * ait TOUJOURS un provider disponible. Grâce aux messages SSR, le premier
+ * rendu n'affiche plus de clés brutes lors de l'hydratation.
  *
- * Avec des messages vides, `t("clé")` retourne la clé brute via
- * `getMessageFallback` — acceptable pour un état de chargement transitoire,
- * remplacé dès que les messages arrivent. `onError` ignore les erreurs
- * `MISSING_MESSAGE` (attendues pendant le chargement) tout en laissant passer
- * les autres erreurs.
+ * Les messages vides ne sont plus le cas nominal, mais le fallback reste
+ * utile si le SSR n'a pas fourni de messages : avec `{}`, `t("clé")` retourne
+ * la clé brute via `getMessageFallback` — acceptable pour un état de
+ * chargement transitoire. `onError` ignore les erreurs `MISSING_MESSAGE`
+ * (attendues pendant le chargement) tout en laissant passer les autres erreurs.
  */
-export default function IntlProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocale] = useState<Locale>(defaultLocale);
-  const [messages, setMessages] = useState<Record<string, unknown>>({});
+export default function IntlProvider({
+  children,
+  initialLocale = defaultLocale,
+  initialMessages = {},
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+  initialMessages?: Record<string, unknown>;
+}) {
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [messages, setMessages] = useState<Record<string, unknown>>(initialMessages);
 
   useEffect(() => {
     const currentLocale = getLocaleFromCookie();

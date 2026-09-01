@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Eye, EyeOff } from "lucide-react";
 import { loginSchema } from "@/lib/validators";
 import Input from "@/components/ui/Input";
@@ -11,6 +12,7 @@ import Button from "@/components/ui/Button";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("admin");
 
   // Anti open-redirect : n'accepter que des chemins internes du dashboard admin.
   // Bloque les URLs absolues (https://…), protocole-relative (//evil.com) et
@@ -38,7 +40,7 @@ function LoginForm() {
 
     const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
-      setError(parsed.error.errors[0].message);
+      setError(t(parsed.error.errors[0].message));
       setLoading(false);
       return;
     }
@@ -51,13 +53,13 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        setError("Email ou mot de passe incorrect");
+        setError(t("login.invalidCredentials"));
       } else {
         router.push(callbackUrl);
         router.refresh();
       }
     } catch {
-      setError("Une erreur est survenue");
+      setError(t("login.unexpectedError"));
     } finally {
       setLoading(false);
     }
@@ -79,7 +81,7 @@ function LoginForm() {
         id="email"
         name="email"
         type="email"
-        label="Email"
+        label={t("login.email")}
         required
         autoComplete="email"
         autoFocus
@@ -92,7 +94,7 @@ function LoginForm() {
           id="password"
           name="password"
           type={showPassword ? "text" : "password"}
-          label="Mot de passe"
+          label={t("login.password")}
           required
           autoComplete="current-password"
           placeholder="••••••"
@@ -102,34 +104,35 @@ function LoginForm() {
           type="button"
           onClick={() => setShowPassword((v) => !v)}
           className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)] transition-all duration-300 hover:text-[var(--accent)]"
-          aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+          aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
           aria-pressed={showPassword}
         >
           {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          {showPassword ? "Masquer" : "Afficher"}
+          {showPassword ? t("login.hide") : t("login.show")}
         </button>
       </div>
 
       <Button type="submit" disabled={loading} className="w-full" size="lg">
-        {loading ? "Connexion..." : "Se connecter"}
+        {loading ? t("login.signingIn") : t("login.signIn")}
       </Button>
     </form>
   );
 }
 
 export default function LoginPage() {
+  const t = useTranslations("admin");
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
       <div className="w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--bg-card)] p-8 shadow-[var(--shadow-neumorphic)]">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Connexion Admin</h1>
-          <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            E-Commerce DZ — Panel d&apos;administration
-          </p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("login.title")}</h1>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">{t("login.subtitle")}</p>
         </div>
 
         <Suspense
-          fallback={<div className="text-center text-[var(--text-secondary)]">Chargement...</div>}
+          fallback={
+            <div className="text-center text-[var(--text-secondary)]">{t("login.loading")}</div>
+          }
         >
           <LoginForm />
         </Suspense>

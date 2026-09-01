@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EcotrackProvider } from "../providers/ecotrack";
-import { createShipment, trackShipment, cancelShipment } from "../index";
+import { createShipment, trackShipment, cancelShipment, createShipmentForCourier } from "../index";
 import type { ShipmentRequest } from "../types";
 
 const mockShipmentRequest: ShipmentRequest = {
@@ -269,5 +269,37 @@ describe("Dispatcher logistique (index)", () => {
   it("la casse du code provider est insensible", async () => {
     const result = await createShipment("ecotrack", mockShipmentRequest);
     expect(result.success).toBe(true);
+  });
+
+  it("createShipmentForCourier envoie vers dzship /v1/orders avec courier et credentials", async () => {
+    const mockResponse = {
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        trackingNumber: "DZSHIP-001",
+        status: "PENDING",
+        reference: "DZ-test123-ABC",
+      }),
+    };
+    const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await createShipmentForCourier(
+      "YALIDINE",
+      { apiKey: "yal-key-123" },
+      mockShipmentRequest
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.provider).toBe("YALIDINE");
+    expect(result.providerTrackingId).toBe("DZSHIP-001");
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://freeship.dzbuild.com/v1/orders");
+    expect(options.method).toBe("POST");
+
+    const body = JSON.parse(options.body);
+    expect(body.courier).toBe("YALIDINE");
+    expect(body.credentials).toEqual({ apiKey: "yal-key-123" });
+    expect(body.order.reference).toBe("DZ-test123-ABC");
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 
@@ -27,6 +28,7 @@ export default function ImageUploader({
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations("admin");
 
   const handleUpload = useCallback(
     async (files: FileList | null) => {
@@ -38,7 +40,7 @@ export default function ImageUploader({
 
       for (const file of Array.from(files)) {
         if (images.length + newImages.length >= maxImages) {
-          setError(`Maximum ${maxImages} images autorisées`);
+          setError(t("imageUploader.maxImages", { maxImages }));
           break;
         }
 
@@ -53,7 +55,7 @@ export default function ImageUploader({
           const data = await res.json();
 
           if (!res.ok) {
-            setError(data.error || "Erreur upload");
+            setError(data.error || t("imageUploader.uploadError"));
             continue;
           }
 
@@ -64,7 +66,7 @@ export default function ImageUploader({
             sortOrder: images.length + newImages.length,
           });
         } catch {
-          setError("Erreur réseau lors de l'upload");
+          setError(t("imageUploader.networkError"));
         }
       }
 
@@ -73,7 +75,7 @@ export default function ImageUploader({
       }
       setUploading(false);
     },
-    [images, maxImages, onImagesChange]
+    [images, maxImages, onImagesChange, t]
   );
 
   const removeImage = (index: number) => {
@@ -121,16 +123,16 @@ export default function ImageUploader({
         {uploading ? (
           <div className="flex items-center gap-2">
             <Spinner size="sm" />
-            <span className="text-sm text-[var(--text-muted)]">Upload en cours...</span>
+            <span className="text-sm text-[var(--text-muted)]">{t("imageUploader.uploading")}</span>
           </div>
         ) : (
           <>
             <span className="text-3xl text-[var(--text-muted)]">📷</span>
             <p className="mt-2 text-sm text-[var(--text-secondary)]">
-              Glissez-déposez ou cliquez pour ajouter des images
+              {t("imageUploader.dropzone")}
             </p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              JPG, PNG, WebP, GIF — max 5 MB — max {maxImages} images
+              {t("imageUploader.fileTypes", { maxImages })}
             </p>
             <input
               ref={fileInputRef}
@@ -147,7 +149,7 @@ export default function ImageUploader({
               onClick={() => fileInputRef.current?.click()}
               className="mt-3"
             >
-              Sélectionner des fichiers
+              {t("imageUploader.selectFiles")}
             </Button>
           </>
         )}
@@ -179,8 +181,10 @@ export default function ImageUploader({
                 <button
                   type="button"
                   onClick={() => setPrimary(index)}
-                  title="Image principale"
-                  aria-label={img.isPrimary ? "Image principale" : "Définir comme image principale"}
+                  title={t("imageUploader.mainImage")}
+                  aria-label={
+                    img.isPrimary ? t("imageUploader.mainImage") : t("imageUploader.setMainImage")
+                  }
                   className={`rounded-full p-1 text-xs transition-all duration-300 ${
                     img.isPrimary
                       ? "bg-[var(--accent)] text-white"
@@ -192,8 +196,8 @@ export default function ImageUploader({
                 <button
                   type="button"
                   onClick={() => removeImage(index)}
-                  title="Supprimer"
-                  aria-label={`Supprimer l'image ${index + 1}`}
+                  title={t("imageUploader.delete")}
+                  aria-label={t("imageUploader.deleteImage", { index: index + 1 })}
                   className="rounded-full bg-white/80 p-1 text-xs text-red-500 hover:bg-red-500 hover:text-white"
                 >
                   ✕
@@ -202,7 +206,7 @@ export default function ImageUploader({
 
               {img.isPrimary && (
                 <span className="absolute top-1 left-1 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-medium text-white">
-                  Principale
+                  {t("imageUploader.mainBadge")}
                 </span>
               )}
 
@@ -211,8 +215,8 @@ export default function ImageUploader({
                 type="text"
                 value={img.alt}
                 onChange={(e) => updateAlt(index, e.target.value)}
-                placeholder="Texte alternatif"
-                aria-label={`Texte alternatif pour l'image ${index + 1}`}
+                placeholder={t("imageUploader.altPlaceholder")}
+                aria-label={t("imageUploader.altFor", { index: index + 1 })}
                 className="w-full border-t border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
               />
             </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -24,22 +25,23 @@ interface SidebarProps {
 }
 
 const navigation: {
-  name: string;
+  key: string;
   href: string;
   icon: LucideIcon;
 }[] = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Produits", href: "/admin/products", icon: Package },
-  { name: "Commandes", href: "/admin/orders", icon: ShoppingCart },
-  { name: "Livraison", href: "/admin/delivery", icon: Truck },
-  { name: "Pixels", href: "/admin/pixels", icon: Target },
-  { name: "Paramètres", href: "/admin/settings", icon: Settings },
-  { name: "Personnaliser", href: "/admin/customize", icon: Paintbrush },
-  { name: "Mon compte", href: "/admin/account", icon: User },
+  { key: "dashboard", href: "/admin", icon: LayoutDashboard },
+  { key: "products", href: "/admin/products", icon: Package },
+  { key: "orders", href: "/admin/orders", icon: ShoppingCart },
+  { key: "delivery", href: "/admin/delivery", icon: Truck },
+  { key: "pixels", href: "/admin/pixels", icon: Target },
+  { key: "settings", href: "/admin/settings", icon: Settings },
+  { key: "customize", href: "/admin/customize", icon: Paintbrush },
+  { key: "account", href: "/admin/account", icon: User },
 ];
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations("admin");
 
   // Fermer la sidebar mobile avec la touche Échap
   useEffect(() => {
@@ -70,7 +72,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           "lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
-        aria-label="Navigation admin"
+        aria-label={t("nav.adminNav")}
       >
         {/* Logo area */}
         <div className="flex h-16 items-center justify-between border-b border-[var(--border)] px-5">
@@ -87,14 +89,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-muted)] transition-[var(--transition)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] lg:hidden"
-            aria-label="Fermer le menu"
+            aria-label={t("nav.closeMenu")}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3" role="navigation" aria-label="Menu principal">
+        <nav
+          className="flex-1 overflow-y-auto p-3"
+          role="navigation"
+          aria-label={t("nav.mainMenu")}
+        >
           <ul className="space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -122,7 +128,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                           : "text-[var(--text-muted)] group-hover:text-[var(--accent)]"
                       )}
                     />
-                    {item.name}
+                    {t(`nav.${item.key}`)}
                     {isActive && (
                       <div className="ml-auto h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
                     )}
@@ -142,7 +148,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             className="flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2.5 text-sm text-[var(--text-muted)] transition-[var(--transition)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
           >
             <ExternalLink className="h-[18px] w-[18px]" />
-            Voir le storefront
+            {t("nav.viewStorefront")}
           </Link>
         </div>
       </aside>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
@@ -24,9 +25,9 @@ interface CategoryMeta {
 }
 
 const CATEGORY_META: Record<string, CategoryMeta> = {
-  general: { label: "Général", order: 0 },
-  theme: { label: "Thème", order: 1 },
-  delivery: { label: "Livraison", order: 2 },
+  general: { label: "general", order: 0 },
+  theme: { label: "theme", order: 1 },
+  delivery: { label: "delivery", order: 2 },
 };
 
 const LOCALE_OPTIONS = [
@@ -51,6 +52,7 @@ function extractValue(setting: Setting): string {
 }
 
 export default function AdminSettings() {
+  const t = useTranslations("admin");
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,11 +68,11 @@ export default function AdminSettings() {
     try {
       setLoading(true);
       const res = await fetch("/api/settings");
-      if (!res.ok) throw new Error("Erreur lors du chargement");
+      if (!res.ok) throw new Error(t("settingsPage.loadError2"));
       const data: Setting[] = await res.json();
       setSettings(data);
     } catch {
-      setFeedback({ type: "error", message: "Impossible de charger les paramètres." });
+      setFeedback({ type: "error", message: t("settingsPage.loadError") });
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,7 @@ export default function AdminSettings() {
     // sauvegarde globale.
     const entries = Object.entries(modified).filter(([key]) => key !== "active_theme");
     if (entries.length === 0) {
-      setFeedback({ type: "error", message: "Aucune modification à sauvegarder." });
+      setFeedback({ type: "error", message: t("settingsPage.noChanges") });
       return;
     }
 
@@ -134,17 +136,17 @@ export default function AdminSettings() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Erreur lors de la sauvegarde");
+        throw new Error(err.error || t("settingsPage.saveError"));
       }
 
       // Refresh settings from server
       await fetchSettings();
       setModified({});
-      setFeedback({ type: "success", message: "Paramètres sauvegardés avec succès." });
+      setFeedback({ type: "success", message: t("settingsPage.saved") });
     } catch (err) {
       setFeedback({
         type: "error",
-        message: err instanceof Error ? err.message : "Erreur inconnue",
+        message: err instanceof Error ? err.message : t("settingsPage.unknownError"),
       });
     } finally {
       setSaving(false);
@@ -183,7 +185,7 @@ export default function AdminSettings() {
           <Select
             key={setting.key}
             id={fieldId}
-            label={setting.description || "Langue active"}
+            label={setting.description || t("settingsPage.langActive")}
             options={LOCALE_OPTIONS}
             value={currentValue}
             onChange={(e) => handleChange(setting.key, e.target.value)}
@@ -195,7 +197,7 @@ export default function AdminSettings() {
           <Select
             key={setting.key}
             id={fieldId}
-            label={setting.description || "Devise"}
+            label={setting.description || t("settingsPage.currency")}
             options={CURRENCY_OPTIONS}
             value={currentValue}
             onChange={(e) => handleChange(setting.key, e.target.value)}
@@ -207,7 +209,7 @@ export default function AdminSettings() {
           <Input
             key={setting.key}
             id={fieldId}
-            label={setting.description || "Seuil de livraison gratuite (DA)"}
+            label={setting.description || t("settingsPage.freeShippingThreshold")}
             type="number"
             min={0}
             value={currentValue}
@@ -220,7 +222,7 @@ export default function AdminSettings() {
           <Input
             key={setting.key}
             id={fieldId}
-            label={setting.description || "Nom de la boutique"}
+            label={setting.description || t("settingsPage.storeName")}
             type="text"
             value={currentValue}
             onChange={(e) => handleChange(setting.key, e.target.value)}
@@ -232,9 +234,9 @@ export default function AdminSettings() {
           <Input
             key={setting.key}
             id={fieldId}
-            label={setting.description || "URL du logo"}
+            label={setting.description || t("settingsPage.logoUrl")}
             type="text"
-            placeholder="https://..."
+            placeholder={t("settingsPage.placeholderUrl")}
             value={currentValue}
             onChange={(e) => handleChange(setting.key, e.target.value)}
           />
@@ -245,7 +247,7 @@ export default function AdminSettings() {
           <Input
             key={setting.key}
             id={fieldId}
-            label={setting.description || "Fournisseur logistique"}
+            label={setting.description || t("settingsPage.logisticsProvider")}
             type="text"
             value={currentValue}
             onChange={(e) => handleChange(setting.key, e.target.value)}
@@ -271,7 +273,7 @@ export default function AdminSettings() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
         <Spinner size="lg" />
-        <p className="text-sm text-[var(--text-secondary)]">Chargement des paramètres...</p>
+        <p className="text-sm text-[var(--text-secondary)]">{t("settingsPage.loading")}</p>
       </div>
     );
   }
@@ -280,17 +282,19 @@ export default function AdminSettings() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)]">Paramètres</h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">Configuration de la boutique</p>
+          <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+            {t("settingsPage.title")}
+          </h2>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">{t("settingsPage.subtitle")}</p>
         </div>
 
         <Button onClick={handleSave} disabled={saving || Object.keys(modified).length === 0}>
           {saving ? (
             <span className="flex items-center gap-2">
-              <Spinner size="sm" /> Sauvegarde...
+              <Spinner size="sm" /> {t("settingsPage.saving")}
             </span>
           ) : (
-            "Sauvegarder"
+            t("settingsPage.save")
           )}
         </Button>
       </div>
@@ -302,7 +306,7 @@ export default function AdminSettings() {
       {sortedCategories.map((cat) => (
         <Card key={cat} className="p-6">
           <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
-            {CATEGORY_META[cat]?.label || cat}
+            {CATEGORY_META[cat]?.label ? t(`settingsPage.${CATEGORY_META[cat].label}`) : cat}
           </h3>
           <div className="grid gap-4 sm:grid-cols-2">
             {grouped[cat].map((setting) => renderSettingField(setting))}
@@ -312,7 +316,7 @@ export default function AdminSettings() {
 
       {settings.length === 0 && (
         <div className="py-12 text-center text-[var(--text-secondary)]">
-          Aucun paramètre trouvé.
+          {t("settingsPage.noSettings")}
         </div>
       )}
     </div>
