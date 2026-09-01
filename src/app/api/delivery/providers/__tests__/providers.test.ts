@@ -198,19 +198,30 @@ describe("POST /api/delivery/providers", () => {
 
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({
-      error: "Le champ 'credentials' est requis (objet non vide)",
+      error: "Le champ 'credentials' est requis (objet)",
     });
     expect(mockedSaveConnection).not.toHaveBeenCalled();
   });
 
-  it("retourne 400 si 'credentials' est un objet vide", async () => {
-    const res = await POST(makeRequest({ code: "YALIDINE", credentials: {} }));
+  it("retourne 400 si 'credentials' est un tableau", async () => {
+    const res = await POST(makeRequest({ code: "YALIDINE", credentials: [] }));
 
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({
-      error: "Le champ 'credentials' est requis (objet non vide)",
+      error: "Le champ 'credentials' est requis (objet)",
     });
     expect(mockedSaveConnection).not.toHaveBeenCalled();
+  });
+
+  it("retourne 200 avec credentials vide (sandbox dzship)", async () => {
+    const res = await POST(makeRequest({ code: "DZSHIP_SANDBOX", credentials: {} }));
+
+    expect(res.status).toBe(200);
+    expect(mockedSaveConnection).toHaveBeenCalledTimes(1);
+    const saved = mockedSaveConnection.mock.calls[0][0];
+    expect(saved.code).toBe("DZSHIP_SANDBOX");
+    expect(saved.credentials).toEqual({});
+    expect(saved.isActive).toBe(true);
   });
 
   it("retourne 400 si une valeur de credentials est une chaîne vide", async () => {
@@ -392,7 +403,49 @@ describe("POST /api/delivery/providers/test", () => {
 
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({
-      error: "Le champ 'credentials' est requis (objet non vide)",
+      error: "Le champ 'credentials' est requis (objet)",
+    });
+    expect(mockedTestDzshipConnection).not.toHaveBeenCalled();
+  });
+
+  it("retourne 400 si credentials est un tableau", async () => {
+    const res = await POST_TEST(makeRequest({ code: "YALIDINE", credentials: [] }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "Le champ 'credentials' est requis (objet)",
+    });
+    expect(mockedTestDzshipConnection).not.toHaveBeenCalled();
+  });
+
+  it("retourne 200 avec credentials vide (sandbox dzship)", async () => {
+    mockedTestDzshipConnection.mockResolvedValue({ success: true });
+
+    const res = await POST_TEST(makeRequest({ code: "DZSHIP_SANDBOX", credentials: {} }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+    expect(mockedTestDzshipConnection).toHaveBeenCalledWith("DZSHIP_SANDBOX", {}, undefined);
+  });
+
+  it("retourne 400 si une valeur de credentials est une chaîne vide", async () => {
+    const res = await POST_TEST(
+      makeRequest({ code: "YALIDINE", credentials: { apiKey: "", token: "abc" } })
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "Tous les champs credentials doivent être remplis",
+    });
+    expect(mockedTestDzshipConnection).not.toHaveBeenCalled();
+  });
+
+  it("retourne 400 si une valeur de credentials est un espace blanc", async () => {
+    const res = await POST_TEST(makeRequest({ code: "YALIDINE", credentials: { apiKey: "   " } }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "Tous les champs credentials doivent être remplis",
     });
     expect(mockedTestDzshipConnection).not.toHaveBeenCalled();
   });

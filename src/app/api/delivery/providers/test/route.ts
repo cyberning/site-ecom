@@ -22,14 +22,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Le champ 'code' est requis" }, { status: 400 });
     }
 
-    if (
-      !credentials ||
-      typeof credentials !== "object" ||
-      Array.isArray(credentials) ||
-      Object.keys(credentials).length === 0
-    ) {
+    // credentials peut être vide ({}) pour les couriers sans credentials (ex. sandbox dzship)
+    if (!credentials || typeof credentials !== "object" || Array.isArray(credentials)) {
       return NextResponse.json(
-        { error: "Le champ 'credentials' est requis (objet non vide)" },
+        { error: "Le champ 'credentials' est requis (objet)" },
+        { status: 400 }
+      );
+    }
+
+    // Chaque valeur de credentials doit être une chaîne non vide
+    if (Object.values(credentials).some((v) => typeof v !== "string" || v.trim() === "")) {
+      return NextResponse.json(
+        { error: "Tous les champs credentials doivent être remplis" },
         { status: 400 }
       );
     }
