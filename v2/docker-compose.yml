@@ -1,0 +1,114 @@
+# =============================================================================
+# eCom DZ v2 — docker-compose.yml
+#
+# DÉPLOIEMENT SUR VPS (1 GB disque / 250 MB RAM)
+# -----------------------------------------------------------------------------
+# 1) Copier le projet sur le VPS, puis :
+#      cd v2
+#      cp .env.example .env   # puis éditer .env (secrets, NEXTAUTH_URL, ...)
+#
+# 2) Construire et démarrer l'application (sans Airbyte) :
+#      docker compose up -d --build app
+#
+# 3) Vérifier les logs :
+#      docker compose logs -f app
+#
+# 4) L'application est disponible sur http://<IP_VPS>:3000
+#
+# 5) (OPTIONNEL) Activer Airbyte (analytique) — LOURD (~1-2 GB, plusieurs Go
+#    de RAM). Sur un VPS à 250 MB de RAM, il est FORTEMENT déconseillé de
+#    l'activer. Le webhook /api/webhooks/airbyte fonctionne sans Airbyte.
+#      docker compose --profile analytics up -d
+#
+# 6) Mise à jour :
+#      docker compose up -d --build app
+#
+# 7) Sauvegarde : les volumes (DB SQLite + uploads) sont persistants.
+#      docker compose down   # ne supprime PAS les volumes
+#      docker compose down -v  # supprime AUSSI les volumes (attention)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Application Next.js (eCom DZ v2)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecom-dz-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Injecte toutes les variables du fichier .env
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - UPLOAD_DIR=${UPLOAD_DIR}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE}
+      - AIRBYTE_WEBHOOK_SECRET=${AIRBYTE_WEBHOOK_SECRET}
+      - NODE_ENV=production
+    volumes:
+      # Base de données SQLite (persistante)
+      - db_data:/app/prisma
+      # Uploads (persistants)
+      - uploads_data:/app/public/uploads
+    # Le CMD du Dockerfile exécute : prisma db push -> prisma db seed -> next start
+
+  # ---------------------------------------------------------------------------
+  # Airbyte (ANALYTIQUE) — OPTIONNEL
+  # ---------------------------------------------------------------------------
+  # ⚠️  LOURD : ~1-2 GB de disque et plusieurs Go de RAM. Sur un VPS à
+  #     250 MB de RAM, NE PAS l'activer. Ce service ne démarre que si on le
+  #     demande explicitement via `--profile analytics`.
+  #
+  #     Il reçoit les webhooks d'analytique envoyés par l'app sur
+  #     /api/webhooks/airbyte (l'app reste fonctionnelle sans lui).
+  #
+  #     Pour l'activer (sur une machine plus puissante) :
+  #       docker compose --profile analytics up -d
+  airbyte:
+    image: airbyte/airbyte-oss:latest
+    container_name: ecom-dz-airbyte
+    profiles: ["analytics"] # ne démarre PAS par défaut
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # UI Airbyte
+      - "8001:8001" # API Airbyte
+    environment:
+      - AIRBYTE_ROLE=oss
+      - AIRBYTE_VERSION=latest
+      - DATABASE_HOST=airbyte-db
+      - DATABASE_PORT=5432
+      - DATABASE_DB=airbyte
+      - DATABASE_USER=airbyte
+      - DATABASE_PASSWORD=${AIRBYTE_DB_PASSWORD:-airbyte}
+      - WEBAPP_URL=http://localhost:8000
+      - API_URL=http://localhost:8001
+      - TRACKING_STRATEGY=logging
+    depends_on:
+      - airbyte-db
+    # Le webhook de l'app doit pouvoir joindre Airbyte via le réseau Docker.
+    # L'app appelle /api/webhooks/airbyte (côté app) ; Airbyte est un
+    # consommateur/agrégateur de ces événements.
+
+  # Base de données interne d'Airbyte (PostgreSQL) — uniquement si Airbyte actif
+  airbyte-db:
+    image: postgres:16-alpine
+    container_name: ecom-dz-airbyte-db
+    profiles: ["analytics"]
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=airbyte
+      - POSTGRES_USER=airbyte
+      - POSTGRES_PASSWORD=${AIRBYTE_DB_PASSWORD:-airbyte}
+    volumes:
+      - airbyte_db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+  uploads_data:
+  airbyte_db_data:

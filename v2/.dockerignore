@@ -1,0 +1,42 @@
+# =============================================================================
+# eCom DZ v2 — .dockerignore
+# Exclut tout ce qui n'est pas nécessaire au build / runtime pour réduire
+# le contexte envoyé à Docker (important sur un VPS à 1 GB de disque).
+# =============================================================================
+
+# Dépendances (réinstallées dans l'image)
+node_modules/
+npm-debug.log*
+
+# Build Next.js (régénéré dans l'image)
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Git
+.git/
+.gitignore
+
+# Environnement (injecté via docker-compose / .env)
+.env
+.env*.local
+.env.example
+
+# Base de données SQLite (volume persistant, jamais dans l'image)
+*.db
+*.db-journal
+prisma/dev.db
+
+# Uploads (volume persistant, jamais dans l'image)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Logs & divers
+*.log
+.DS_Store
+*.pem
+
+# Docs / config locale
+README.md
